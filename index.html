@@ -394,7 +394,7 @@ select:hover{border-color:#5b7cff}
         <div style="display:grid;gap:12px">
           <div>
             <label style="font-size:11px;color:#8892a4;display:block;margin-bottom:4px">URL du site Netlify</label>
-            <input id="deploySiteUrl" type="text" placeholder="https://snv-crm-civ.netlify.app"
+            <input id="deploySiteUrl" type="text" value="https://snvciv.netlify.app"
               style="width:100%;padding:9px 12px;background:#0d1117;border:1px solid #30363d;border-radius:6px;color:#e2e8f0;font-size:13px;box-sizing:border-box">
           </div>
           <div>
@@ -5100,6 +5100,17 @@ const TM_DEFAULT = {
   },
   '2026-07': {
     meetings: [
+      { id:'m011', date:'2026-06-30', partenaire:'MTN CIV', mType:'physique',
+        lieu:'Locaux MTN CIV, Abidjan',
+        participants:'Mounirou Sangaré (StarNews) · Massara Kouakou, Adama Koita, Guy Kamgaing, Alex Taco, Floriane Yao (MTN CIV)',
+        bareme:['marketing','product'],
+        points:[
+          { id:'pt090', text:'Planning Balance à partager pour Juillet — livré', taskId:'t027' },
+          { id:'pt091', text:'Brief de Communication à générer pour soumission interne et définir le Next step', taskId:'t028' },
+          { id:'pt092', text:'Plan d\'animation rewarding à partager avant lancement Août', taskId:'t029' },
+          { id:'pt093', text:'Faisabilité d\'intégration des chaînes SNV dans un menu USSD — délai à définir', taskId:'t030' }
+        ]
+      },
       { id:'m010', date:'2026-06-30', partenaire:'OCI', mType:'physique',
         lieu:'Bureaux OCI, Abidjan',
         participants:'Mounirou Sangaré (StarNews) · Georges Hathry, Arsène Pré Kouadio, Guy Kamgaing (OCI)',
@@ -5121,7 +5132,11 @@ const TM_DEFAULT = {
       { id:'t023', text:'Planning campagnes SMS OCI — Georges partage le planning de campagne', partenaire:'OCI', categorie:'marketing', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-06', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt085' },
       { id:'t024', text:'Campagnes Pop Up & bannières MaxIT — visuels au 10/07, démarrage campagnes le 17/07', partenaire:'OCI', categorie:'marketing', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m010', pointId:'pt086' },
       { id:'t025', text:'Bundle StarNews dans Promo 200% mardi OCI — valider la faisabilité (Georges)', partenaire:'OCI', categorie:'product', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt088' },
-      { id:'t026', text:'Fournir data provenance abonnés StarNews sur les 6 derniers mois', partenaire:'OCI', categorie:'suivi_telco', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt089' }
+      { id:'t026', text:'Fournir data provenance abonnés StarNews sur les 6 derniers mois', partenaire:'OCI', categorie:'suivi_telco', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt089' },
+      { id:'t027', text:'Planning Balance à partager pour Juillet', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-01', statut:'fait', source:'meeting', meetingId:'m011', pointId:'pt090' },
+      { id:'t028', text:'Générer le brief de Com pour soumettre en interne et définir le Next step', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt091' },
+      { id:'t029', text:'Partager un plan d\'animation rewarding pour lancement avant Août', partenaire:'MTN CIV', categorie:'marketing', responsable:'Mounirou', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt092' },
+      { id:'t030', text:'Statuer sur la faisabilité d\'intégrer les chaînes SNV dans un menu USSD et définir le délai', partenaire:'MTN CIV', categorie:'product', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt093' }
     ],
     campagnes: [],
     createurs: [],
@@ -5211,6 +5226,32 @@ function runTMMigrations() {
     { id:'t026', text:'Fournir data provenance abonnés StarNews sur les 6 derniers mois', partenaire:'OCI', categorie:'suivi_telco', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt089' }
   ];
   newTasks.forEach(t => {
+    if (!md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
+  });
+
+  // Migration M011 — Meeting MTN CIV 30 juin 2026
+  if (!md06.meetings.find(m => m.id === 'm011')) {
+    md06.meetings.push({
+      id:'m011', date:'2026-06-30', partenaire:'MTN CIV', mType:'physique',
+      lieu:'Locaux MTN CIV, Abidjan',
+      participants:'Mounirou Sangaré (StarNews) · Massara Kouakou, Adama Koita, Guy Kamgaing, Alex Taco, Floriane Yao (MTN CIV)',
+      bareme:['marketing','product'],
+      points:[
+        { id:'pt090', text:'Planning Balance à partager pour Juillet — livré', taskId:'t027' },
+        { id:'pt091', text:'Brief de Communication à générer pour soumission interne et définir le Next step', taskId:'t028' },
+        { id:'pt092', text:"Plan d'animation rewarding à partager avant lancement Août", taskId:'t029' },
+        { id:'pt093', text:"Faisabilité d'intégration des chaînes SNV dans un menu USSD — délai à définir", taskId:'t030' }
+      ]
+    });
+    dirty = true;
+  }
+  const newTasksMTN = [
+    { id:'t027', text:'Planning Balance à partager pour Juillet', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-01', statut:'fait', source:'meeting', meetingId:'m011', pointId:'pt090' },
+    { id:'t028', text:'Générer le brief de Com pour soumettre en interne et définir le Next step', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt091' },
+    { id:'t029', text:"Partager un plan d'animation rewarding pour lancement avant Août", partenaire:'MTN CIV', categorie:'marketing', responsable:'Mounirou', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt092' },
+    { id:'t030', text:"Statuer sur la faisabilité d'intégrer les chaînes SNV dans un menu USSD et définir le délai", partenaire:'MTN CIV', categorie:'product', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt093' }
+  ];
+  newTasksMTN.forEach(t => {
     if (!md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
   });
 
