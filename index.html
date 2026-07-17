@@ -178,7 +178,7 @@ select:hover{border-color:#5b7cff}
     <div class="nav-tab"        onclick="showTab('history',this)" id="histTab">🗂 Historique</div>
   <div class="nav-tab"        onclick="showTab('upload',this)">📥 Données</div>
   <div class="nav-tab"        onclick="showTab('copier',this)">📋 Copier-Coller</div>
-    <div class="nav-tab"        onclick="showTab('contrat',this)">📋 Task Mgmt</div>
+    <div class="nav-tab"        onclick="showTab('contrat',this)">📋 Task Mgmt <span id="tmOverdueBadge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;vertical-align:middle;margin-left:3px">0</span></div>
   <div class="nav-tab"        onclick="showTab('campagnes',this)">📣 Campagnes</div>
 </nav>
 
@@ -5160,6 +5160,9 @@ let _dataTab    = 'upload';
 let _tmFilter  = { statut:'', partenaire:'', categorie:'', dateFrom:'', dateTo:'' };
 let _tmQA      = null;
 let _tmEditId  = null;  // task ID currently expanded for editing
+let _tmLinkMode  = null; // "mid:pid" quand un point est en mode "lier tâche existante"
+let _tmAIResult  = null; // résultat de l'analyse IA
+let _tmAILoading = false;
 let _tmFullscreen = false;
 function tmToggleFS(){
   _tmFullscreen=!_tmFullscreen;
@@ -5328,7 +5331,7 @@ function renderContrat() {
 
   // Sub-tabs
   `<div style="display:flex;gap:4px;margin-bottom:14px;background:#060910;border-radius:8px;padding:4px">` +
-  [['vue','🏠 Vue d\'ensemble'],['meetings','🤝 Meetings'],['tasks','✅ Tasks'],['fiches','📊 Fiches CP'],['hebdo','📧 Hebdo'],['stats_oci','📊 Stats OCI'],['rapport','📄 Rapport']].map(([id,lbl])=>
+  [['vue','🏠 Vue d\'ensemble'],['meetings','🤝 Meetings'],['tasks','✅ Tasks'],['fiches','📊 Fiches CP'],['hebdo','📧 Hebdo'],['stats_oci','📊 Stats OCI'],['rapport','📄 Rapport'],['ia','🤖 IA']].map(([id,lbl])=>
     `<button onclick="tmSetSubTab('${id}')" style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;${_tmSubTab===id?'background:#1e2235;color:#fff':'background:transparent;color:#555'}">${lbl}</button>`
   ).join('') +
   `</div>` +
@@ -5340,10 +5343,17 @@ function renderContrat() {
    _tmSubTab==='fiches'  ?renderTmFichesCp(md,mk):
    _tmSubTab==='hebdo'   ?renderTmHebdo(md,mk):
    _tmSubTab==='stats_oci'?renderTmStatsOCI(md,mk):
+   _tmSubTab==='ia'      ?renderTmIA(md,mk):
                            renderTmRapportPanel(md,mk,bar,mLabel)) +
 
   // Quick-add overlay
   (_tmQA?renderQuickAdd(md,mk):'');
+
+  // Badge onglet "En retard"
+  const _tod=new Date().toISOString().slice(0,10);
+  const _nOvd=(md.tasks||[]).filter(t=>t.deadline&&t.deadline<_tod&&t.statut!=='fait').length;
+  const _bdg=document.getElementById('tmOverdueBadge');
+  if(_bdg){ _bdg.textContent=_nOvd; _bdg.style.display=_nOvd?'inline':'none'; }
 }
 
 function tmSetMonth(mk){ _tmMonth=mk; _tmExpMtg=null; _tmEditMtg=null; renderContrat(); }
@@ -5403,7 +5413,25 @@ function renderTmMtgCard(m,mk,allTasks){
       h+=`<div style="flex:1"><div contenteditable="true" onblur="tmSavePoint('${m.id}','${pt.id}','${mk}',this.innerText)" style="font-size:12px;color:#ccc;outline:none;line-height:1.5">${pt.text}</div>`;
       if(lt) h+=`<div style="font-size:10px;color:${TM_STATUT_COLORS[lt.statut]};margin-top:2px">${TM_STATUT_ICONS[lt.statut]} ${lt.text.slice(0,55)}${lt.text.length>55?'…':''}</div>`;
       h+=`</div>`;
-      if(!lt) h+=`<button onclick="event.stopPropagation();tmPromotePoint('${m.id}','${pt.id}','${mk}')" style="font-size:10px;color:#5b7cff;background:#5b7cff11;border:1px solid #5b7cff33;padding:2px 8px;border-radius:3px;cursor:pointer;white-space:nowrap">→ Tâche</button>`;
+      if(lt) h+=`<button onclick="event.stopPropagation();tmUnlinkTaskFromPoint('${m.id}','${pt.id}','${mk}')" style="font-size:9px;color:#555;background:none;border:1px solid #2a3048;padding:2px 6px;border-radius:3px;cursor:pointer;white-space:nowrap;flex-shrink:0" title="Délier cette tâche">⛓ Délier</button>`;
+      if(!lt){
+        const lkey=`${m.id}:${pt.id}`;
+        if(_tmLinkMode===lkey){
+          const ptTasks=allTasks.filter(t=>t.partenaire===m.partenaire);
+          h+=`<div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;flex-shrink:0">`;
+          h+=`<select id="link_sel_${pt.id}" onclick="event.stopPropagation()" style="font-size:10px;background:#0a0f1e;border:1px solid #5b7cff55;color:#ccc;padding:2px 5px;border-radius:3px;max-width:180px"><option value="">— choisir —</option>`;
+          ptTasks.forEach(t=>{ h+=`<option value="${t.id}">${TM_STATUT_ICONS[t.statut]} ${t.text.slice(0,40)}${t.text.length>40?'…':''}</option>`; });
+          h+=`</select><div style="display:flex;gap:3px">`;
+          h+=`<button onclick="event.stopPropagation();tmLinkTaskToPoint('${m.id}','${pt.id}','${mk}',document.getElementById('link_sel_${pt.id}').value)" style="font-size:10px;color:#22c55e;background:#22c55e11;border:1px solid #22c55e33;padding:2px 8px;border-radius:3px;cursor:pointer;white-space:nowrap">✓ Lier</button>`;
+          h+=`<button onclick="event.stopPropagation();_tmLinkMode=null;renderContrat()" style="font-size:10px;color:#555;background:none;border:1px solid #2a3048;padding:2px 6px;border-radius:3px;cursor:pointer">✕</button>`;
+          h+=`</div></div>`;
+        } else {
+          h+=`<div style="display:flex;gap:3px;flex-shrink:0">`;
+          h+=`<button onclick="event.stopPropagation();tmPromotePoint('${m.id}','${pt.id}','${mk}')" style="font-size:10px;color:#5b7cff;background:#5b7cff11;border:1px solid #5b7cff33;padding:2px 8px;border-radius:3px;cursor:pointer;white-space:nowrap">+ Tâche</button>`;
+          h+=`<button onclick="event.stopPropagation();_tmLinkMode='${m.id}:${pt.id}';renderContrat()" style="font-size:10px;color:#f59e0b;background:#f59e0b11;border:1px solid #f59e0b33;padding:2px 8px;border-radius:3px;cursor:pointer;white-space:nowrap">🔗 Lier</button>`;
+          h+=`</div>`;
+        }
+      }
       h+=`<button onclick="event.stopPropagation();tmDeletePoint('${m.id}','${pt.id}','${mk}')" style="background:none;border:none;color:#2a3048;cursor:pointer;font-size:14px;padding:0 2px">×</button>`;
       h+=`</div>`;
     });
@@ -5509,6 +5537,27 @@ function tmDeleteMeeting(id,mk){ if(!confirm('Supprimer ce meeting et ses tâche
 function tmAddPoint(mid,mk){ saveTmMutation(s=>{ const m=getMonthData(s,mk).meetings.find(x=>x.id===mid); if(m){ if(!m.points)m.points=[]; m.points.push({id:tmGenId(),text:'Nouveau point abordé',taskId:null}); } }); _tmExpMtg=mid; }
 function tmSavePoint(mid,pid,mk,text){ saveTmMutation(s=>{ const m=getMonthData(s,mk).meetings.find(x=>x.id===mid); if(m){ const pt=(m.points||[]).find(x=>x.id===pid); if(pt)pt.text=text.trim(); } }); }
 function tmDeletePoint(mid,pid,mk){ saveTmMutation(s=>{ const m=getMonthData(s,mk).meetings.find(x=>x.id===mid); if(m)m.points=(m.points||[]).filter(x=>x.id!==pid); }); _tmExpMtg=mid; }
+function tmLinkTaskToPoint(mid,pid,mk,tid){
+  if(!tid){ return; }
+  saveTmMutation(s=>{
+    const md=getMonthData(s,mk);
+    const m=md.meetings.find(x=>x.id===mid); if(!m) return;
+    const pt=(m.points||[]).find(x=>x.id===pid); if(!pt) return;
+    pt.taskId=tid;
+    const t=(md.tasks||[]).find(x=>x.id===tid); if(t){ t.meetingId=mid; t.pointId=pid; t.source='meeting'; }
+  });
+  _tmLinkMode=null; _tmExpMtg=mid;
+}
+function tmUnlinkTaskFromPoint(mid,pid,mk){
+  saveTmMutation(s=>{
+    const md=getMonthData(s,mk);
+    const m=md.meetings.find(x=>x.id===mid); if(!m) return;
+    const pt=(m.points||[]).find(x=>x.id===pid); if(!pt) return;
+    const oldTid=pt.taskId; pt.taskId=null;
+    if(oldTid){ const t=(md.tasks||[]).find(x=>x.id===oldTid); if(t){ delete t.meetingId; delete t.pointId; } }
+  });
+  _tmExpMtg=mid;
+}
 function tmPromotePoint(mid,pid,mk){
   const s=initTaskMan(); const md=getMonthData(s,mk);
   const m=md.meetings.find(x=>x.id===mid); if(!m) return;
@@ -5572,6 +5621,182 @@ function tmSubmitQA(mk){
 }
 
 // ── TASKS ─────────────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════
+// IA — Analyse de notes brutes
+// ═══════════════════════════════════════════════════════════════════
+const AI_CFG_KEY='snv_ai_cfg';
+function getAICfg(){ try{ return JSON.parse(localStorage.getItem(AI_CFG_KEY)||'null'); }catch{ return null; } }
+function saveAIKey(){
+  const k=(document.getElementById('aiKeyInput')||{}).value||'';
+  if(!k.startsWith('sk-ant-')){ alert('Clé invalide (doit commencer par sk-ant-)'); return; }
+  localStorage.setItem(AI_CFG_KEY,JSON.stringify({key:k})); renderContrat();
+}
+function disconnectAI(){ localStorage.removeItem(AI_CFG_KEY); _tmAIResult=null; renderContrat(); }
+
+async function tmAnalyzeNotes(mk){
+  const cfg=getAICfg(); if(!cfg||!cfg.key){ alert('Configurez d\'abord la clé API Anthropic'); return; }
+  const notes=(document.getElementById('aiNotesInput')||{}).value||'';
+  if(!notes.trim()){ alert('Collez vos notes d\'abord'); return; }
+  _tmAILoading=true; _tmAIResult=null; renderContrat();
+  const today=new Date().toISOString().slice(0,10);
+  const partners=TM_PARTNERS.map(p=>p.id).join(', ');
+  const cats=TM_BAREME_CATS.map(c=>c.id).join(', ');
+  const prompt=`Tu es un assistant CRM. À partir de ces notes de réunion, extrais les informations structurées en JSON.
+
+Notes :
+${notes}
+
+Retourne UNIQUEMENT un objet JSON valide avec cette structure (rien d'autre autour) :
+{
+  "meeting": {
+    "date": "YYYY-MM-DD",
+    "partenaire": "un parmi: ${partners}",
+    "mType": "physique ou visio",
+    "lieu": "lieu si mentionné sinon vide",
+    "participants": "noms séparés par · si mentionnés",
+    "points": [{ "text": "point abordé résumé en 1 phrase courte" }]
+  },
+  "tasks": [
+    {
+      "text": "action concrète à réaliser",
+      "partenaire": "un parmi: ${partners}",
+      "categorie": "un parmi: ${cats}",
+      "responsable": "prénom du responsable ou vide",
+      "deadline": "YYYY-MM-DD ou null",
+      "statut": "a_faire ou en_cours ou fait",
+      "pointIndex": 0
+    }
+  ]
+}
+
+Date du jour : ${today}. Calcule les deadlines relatives (ex: "dans 2 semaines" → date absolue). Si le partenaire n'est pas identifiable, utilise "OCI". Le champ pointIndex indique à quel point de meeting la tâche correspond (index 0-based dans le tableau points).`;
+
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':cfg.key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:2000,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||`HTTP ${res.status}`); }
+    const data=await res.json();
+    const txt=data.content[0].text.trim();
+    const m=txt.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('Réponse JSON introuvable dans la réponse');
+    _tmAIResult=JSON.parse(m[0]);
+  } catch(e){ _tmAIResult={error:e.message}; }
+  _tmAILoading=false; renderContrat();
+}
+
+function tmAIInsert(mk){
+  if(!_tmAIResult||_tmAIResult.error) return;
+  const r=_tmAIResult;
+  saveTmMutation(s=>{
+    const md=getMonthData(s,mk);
+    const mid=tmGenId();
+    const ptMap=[];
+    (r.meeting.points||[]).forEach((p,i)=>{ ptMap.push({id:tmGenId(),text:p.text,taskId:null,_idx:i}); });
+    const newMtg={
+      id:mid,
+      date:r.meeting.date||new Date().toISOString().slice(0,10),
+      partenaire:r.meeting.partenaire||'OCI',
+      mType:r.meeting.mType||'physique',
+      lieu:r.meeting.lieu||'',
+      participants:r.meeting.participants||'',
+      bareme:[...new Set((r.tasks||[]).map(t=>t.categorie).filter(Boolean))].slice(0,3)||['product'],
+      points:ptMap.map(p=>({id:p.id,text:p.text,taskId:null}))
+    };
+    if(!md.meetings) md.meetings=[];
+    md.meetings.push(newMtg);
+    if(!md.tasks) md.tasks=[];
+    (r.tasks||[]).forEach(t=>{
+      const tid=tmGenId();
+      const pt=ptMap.find(p=>p._idx===(t.pointIndex??-1));
+      if(pt){ const mp=newMtg.points.find(x=>x.id===pt.id); if(mp) mp.taskId=tid; }
+      md.tasks.push({id:tid,text:t.text,partenaire:t.partenaire||newMtg.partenaire,categorie:t.categorie||'product',responsable:t.responsable||'',date_creation:new Date().toISOString().slice(0,10),deadline:t.deadline||null,statut:t.statut||'a_faire',source:'meeting',meetingId:mid,pointId:pt?pt.id:null});
+    });
+  });
+  _tmAIResult=null; _tmSubTab='meetings'; _tmExpMtg=null; renderContrat();
+}
+
+function renderTmIA(md,mk){
+  const cfg=getAICfg();
+  let h=`<div>`;
+  // Config clé
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;margin-bottom:12px">`;
+  h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:10px">🔑 Clé API Anthropic</div>`;
+  if(cfg){
+    h+=`<div style="display:flex;align-items:center;gap:10px">`;
+    h+=`<div style="font-size:11px;color:#22c55e">✓ Configurée (…${cfg.key.slice(-4)})</div>`;
+    h+=`<button onclick="disconnectAI()" style="font-size:10px;color:#ef4444;background:#ef444411;border:1px solid #ef444433;padding:3px 10px;border-radius:4px;cursor:pointer">Supprimer</button>`;
+    h+=`</div>`;
+  } else {
+    h+=`<div style="display:flex;gap:8px;align-items:center;margin-bottom:6px">`;
+    h+=`<input id="aiKeyInput" type="password" placeholder="sk-ant-api03-…" style="flex:1;background:#060a14;border:1px solid #1e2235;color:#ccc;padding:7px 10px;border-radius:5px;font-size:12px">`;
+    h+=`<button onclick="saveAIKey()" style="font-size:11px;color:#fff;background:#5b7cff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;white-space:nowrap">Enregistrer</button>`;
+    h+=`</div>`;
+    h+=`<div style="font-size:10px;color:#444">Créez une clé sur <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#5b7cff">console.anthropic.com</a> · Stockée uniquement dans ce navigateur</div>`;
+  }
+  h+=`</div>`;
+  // Notes input
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;margin-bottom:12px">`;
+  h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px">📝 Notes brutes de réunion</div>`;
+  h+=`<textarea id="aiNotesInput" rows="10" placeholder="Collez vos notes ici : date, partenaire, participants, points abordés, actions à prendre, responsables, délais…" style="width:100%;box-sizing:border-box;background:#060a14;border:1px solid #1e2235;color:#ccc;padding:10px;border-radius:6px;font-size:12px;line-height:1.6;resize:vertical"></textarea>`;
+  h+=`<div style="margin-top:10px;display:flex;align-items:center;gap:10px">`;
+  if(_tmAILoading){
+    h+=`<button disabled style="font-size:12px;color:#555;background:#1e2235;border:none;padding:9px 20px;border-radius:6px">⏳ Analyse en cours…</button>`;
+  } else {
+    h+=`<button onclick="tmAnalyzeNotes('${mk}')" style="font-size:12px;color:#fff;background:#5b7cff;border:none;padding:9px 20px;border-radius:6px;cursor:pointer;font-weight:600">🤖 Analyser les notes</button>`;
+  }
+  h+=`<div style="font-size:10px;color:#444">Modèle : Claude Haiku · ~0,01 € / analyse</div>`;
+  h+=`</div></div>`;
+  // Résultat
+  if(_tmAIResult){
+    if(_tmAIResult.error){
+      h+=`<div style="background:#ef444411;border:1px solid #ef444433;border-radius:8px;padding:12px;color:#ef4444;font-size:12px">❌ Erreur : ${_tmAIResult.error}</div>`;
+    } else {
+      const r=_tmAIResult, m=r.meeting||{};
+      h+=`<div style="background:#22c55e09;border:1px solid #22c55e33;border-radius:8px;padding:14px">`;
+      h+=`<div style="font-size:11px;font-weight:700;color:#22c55e;margin-bottom:12px">✓ Analyse terminée — vérifiez avant d'insérer</div>`;
+      // Meeting preview
+      h+=`<div style="background:#0a0f1e;border-radius:6px;padding:10px;margin-bottom:10px">`;
+      h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:6px">🤝 Meeting détecté</div>`;
+      h+=`<div style="display:grid;grid-template-columns:80px 1fr;gap:3px 10px;font-size:11px">`;
+      [['Date',m.date],['Partenaire',m.partenaire],['Type',m.mType],['Lieu',m.lieu],['Participants',m.participants]].forEach(([l,v])=>{ if(v){ h+=`<span style="color:#555">${l}</span><span style="color:#ccc">${v}</span>`; } });
+      h+=`</div>`;
+      if((m.points||[]).length){
+        h+=`<div style="margin-top:8px">`;
+        (m.points||[]).forEach((p,i)=>{ h+=`<div style="font-size:11px;color:#aaa;padding:2px 0">${i+1}. ${p.text}</div>`; });
+        h+=`</div>`;
+      }
+      h+=`</div>`;
+      // Tasks preview
+      if((r.tasks||[]).length){
+        h+=`<div style="background:#0a0f1e;border-radius:6px;padding:10px;margin-bottom:12px">`;
+        h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px">✅ ${r.tasks.length} tâche${r.tasks.length>1?'s':''} détectée${r.tasks.length>1?'s':''}</div>`;
+        r.tasks.forEach(t=>{
+          const sc=TM_STATUT_COLORS[t.statut]||'#555';
+          h+=`<div style="padding:6px 0;border-bottom:1px solid #1e2235;font-size:11px">`;
+          h+=`<div style="color:#ccc;margin-bottom:4px">${t.text}</div>`;
+          h+=`<div style="display:flex;gap:10px;font-size:10px;flex-wrap:wrap">`;
+          h+=`<span style="color:${sc}">${TM_STATUT_ICONS[t.statut]||'⭕'} ${TM_STATUT_LABELS[t.statut]||t.statut}</span>`;
+          if(t.responsable) h+=`<span style="color:#555">👤 ${t.responsable}</span>`;
+          if(t.deadline)    h+=`<span style="color:#555">📅 ${t.deadline}</span>`;
+          if(t.categorie)   h+=`<span style="color:#555">${t.categorie}</span>`;
+          if(t.pointIndex!=null) h+=`<span style="color:#333">→ point ${t.pointIndex+1}</span>`;
+          h+=`</div></div>`;
+        });
+        h+=`</div>`;
+      }
+      h+=`<div style="display:flex;gap:8px">`;
+      h+=`<button onclick="tmAIInsert('${mk}')" style="font-size:12px;color:#fff;background:#22c55e;border:none;padding:9px 22px;border-radius:6px;cursor:pointer;font-weight:600">✓ Insérer dans le CRM</button>`;
+      h+=`<button onclick="_tmAIResult=null;renderContrat()" style="font-size:12px;color:#888;background:#1e2235;border:none;padding:9px 16px;border-radius:6px;cursor:pointer">✕ Annuler</button>`;
+      h+=`</div></div>`;
+    }
+  }
+  h+=`</div>`; return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════
 function renderTmTasks(md,mk){
   const tasks=md.tasks||[], mtgs=md.meetings||[];
   const fil=tasks.filter(t=>
@@ -5585,6 +5810,24 @@ function renderTmTasks(md,mk){
   const doneAll=tasks.filter(t=>t.statut==='fait').length;
 
   let h=`<div>`;
+  // ── En retard ──────────────────────────────────────────────────
+  const _today=new Date().toISOString().slice(0,10);
+  const _overdue=(md.tasks||[]).filter(t=>t.deadline&&t.deadline<_today&&t.statut!=='fait').sort((a,b)=>a.deadline.localeCompare(b.deadline));
+  if(_overdue.length){
+    h+=`<div style="background:#ef444410;border:1px solid #ef444433;border-radius:8px;padding:12px;margin-bottom:14px">`;
+    h+=`<div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:8px">⚠ ${_overdue.length} tâche${_overdue.length>1?'s':''} en retard</div>`;
+    _overdue.forEach(t=>{
+      const _dl=Math.floor((new Date(_today)-new Date(t.deadline))/(864e5));
+      const _p=tmPartner(t.partenaire);
+      h+=`<div onclick="_tmEditId='${t.id}';renderContrat()" style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid #ef444422;cursor:pointer">`;
+      h+=`<span style="color:#ef4444;font-weight:700;font-size:11px;min-width:28px">+${_dl}j</span>`;
+      h+=`<span style="color:#ccc;flex:1;font-size:11px">${t.text.slice(0,65)}${t.text.length>65?'…':''}</span>`;
+      h+=`<span style="color:#555;font-size:10px;white-space:nowrap">${_p?_p.label:t.partenaire}</span>`;
+      h+=`<button onclick="event.stopPropagation();tmSaveTaskField('${t.id}','${mk}','statut','fait')" style="font-size:10px;color:#22c55e;background:#22c55e11;border:1px solid #22c55e33;padding:2px 8px;border-radius:3px;cursor:pointer;white-space:nowrap">✓ Fait</button>`;
+      h+=`</div>`;
+    });
+    h+=`</div>`;
+  }
   // Stats row
   h+=`<div style="display:flex;gap:8px;margin-bottom:12px">`;
   TM_STATUTS.forEach(s=>{ const col=TM_STATUT_COLORS[s]; h+=`<div style="flex:1;background:#0a0f1e;border:1px solid ${col}33;border-radius:6px;padding:8px;text-align:center"><div style="font-size:16px;font-weight:700;color:${col}">${counts[s]}</div><div style="font-size:10px;color:#444">${TM_STATUT_LABELS[s]}</div></div>`; });
