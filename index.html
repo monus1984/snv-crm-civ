@@ -1682,6 +1682,46 @@ function renderTopContent(h, dates, curDate) {
             '✅ Cloud sync OK — ' + dates.length + ' jours (' + dates[0] + ' → ' + dates[dates.length-1] + ')';
         }
       }
+      // Sync Task Mgmt (merge : remote win si pas de local)
+      const tmFile = gist.files['snv_taskman_v1.json'];
+      if (tmFile && tmFile.content) {
+        try {
+          const remoteTm = JSON.parse(tmFile.content);
+          const localTm = JSON.parse(localStorage.getItem('snv_taskman_v1')||'null');
+          if (!localTm) {
+            localStorage.setItem('snv_taskman_v1', JSON.stringify(remoteTm));
+          } else {
+            // Merge par mois : remote comble les mois manquants, local gagne si présent
+            const mergedTm = Object.assign({}, remoteTm, localTm);
+            // Pour chaque mois commun, garder la version avec le plus de données
+            Object.keys(remoteTm).forEach(mk => {
+              if (localTm[mk]) {
+                const rTasks = (remoteTm[mk].tasks||[]).length + (remoteTm[mk].meetings||[]).length;
+                const lTasks = (localTm[mk].tasks||[]).length + (localTm[mk].meetings||[]).length;
+                mergedTm[mk] = lTasks >= rTasks ? localTm[mk] : remoteTm[mk];
+              }
+            });
+            localStorage.setItem('snv_taskman_v1', JSON.stringify(mergedTm));
+          }
+          if (typeof renderContrat === 'function') renderContrat();
+        } catch(_) {}
+      }
+      // Sync Campagnes (merge : ajouter les campagnes manquantes en local)
+      const cpFile = gist.files['snv_campagnes_v1.json'];
+      if (cpFile && cpFile.content) {
+        try {
+          const remoteCp = JSON.parse(cpFile.content);
+          const localCp = JSON.parse(localStorage.getItem('snv_campagnes_v1')||'null') || {};
+          Object.keys(remoteCp).forEach(period => {
+            if (!localCp[period]) { localCp[period] = remoteCp[period]; return; }
+            (remoteCp[period]||[]).forEach(rc => {
+              if (!localCp[period].find(lc => lc.id === rc.id)) localCp[period].push(rc);
+            });
+          });
+          localStorage.setItem('snv_campagnes_v1', JSON.stringify(localCp));
+          if (typeof renderCampagnes === 'function') renderCampagnes();
+        } catch(_) {}
+      }
       setBadgeOk();
     } catch(e) {
       console.warn('Gist pull failed:', e.message);
@@ -1699,10 +1739,14 @@ function renderTopContent(h, dates, curDate) {
     if (badge) { badge.textContent = '⏳ Sync...'; badge.style.color = '#f39c12'; badge.style.background = '#2a1e0d'; }
     try {
       const data = getRaw();
+      const files = { 'snv_crm_data.json': { content: JSON.stringify(data) } };
+      // Sync Task Mgmt + Campagnes
+      try { const tm=localStorage.getItem('snv_taskman_v1'); if(tm) files['snv_taskman_v1.json']={content:tm}; } catch(_){}
+      try { const cp=localStorage.getItem('snv_campagnes_v1'); if(cp) files['snv_campagnes_v1.json']={content:cp}; } catch(_){}
       await fetch(`https://api.github.com/gists/${cfg.id}`, {
         method: 'PATCH',
         headers: { Authorization: `token ${cfg.token}`, Accept: 'application/vnd.github.v3+json', 'Content-Type': 'application/json' },
-        body: JSON.stringify({ files: { 'snv_crm_data.json': { content: JSON.stringify(data) } } })
+        body: JSON.stringify({ files })
       });
       setBadgeOk();
     } catch(e) {
@@ -5161,8 +5205,11 @@ let _tmFilter  = { statut:'', partenaire:'', categorie:'', dateFrom:'', dateTo:'
 let _tmQA      = null;
 let _tmEditId  = null;  // task ID currently expanded for editing
 let _tmLinkMode  = null; // "mid:pid" quand un point est en mode "lier tâche existante"
-let _tmAIResult  = null; // résultat de l'analyse IA
-let _tmAILoading = false;
+let _tmAIResult    = null; // résultat de l'analyse IA (notes → meeting)
+let _tmAILoading   = false;
+let _tmDecisions   = null; // résultat Decision Center
+let _tmDecLoading  = false;
+let _tmP360Sel     = null; // partenaire sélectionné pour la fiche 360
 let _tmFullscreen = false;
 function tmToggleFS(){
   _tmFullscreen=!_tmFullscreen;
@@ -5172,7 +5219,7 @@ function tmToggleFS(){
 }
 
 function getTmState() { try { return JSON.parse(localStorage.getItem(TM_KEY)||'null'); } catch(e) { return null; } }
-function setTmState(s) { localStorage.setItem(TM_KEY, JSON.stringify(s)); }
+function setTmState(s) { localStorage.setItem(TM_KEY, JSON.stringify(s)); if(typeof gistPush==='function') gistPush(); }
 function initTaskMan() { let s=getTmState(); if(!s){ s=JSON.parse(JSON.stringify(TM_DEFAULT)); setTmState(s); } return s; }
 function saveTmMutation(fn) { const s=initTaskMan(); fn(s); setTmState(s); renderContrat(); }
 
@@ -5331,7 +5378,7 @@ function renderContrat() {
 
   // Sub-tabs
   `<div style="display:flex;gap:4px;margin-bottom:14px;background:#060910;border-radius:8px;padding:4px">` +
-  [['vue','🏠 Vue d\'ensemble'],['meetings','🤝 Meetings'],['tasks','✅ Tasks'],['fiches','📊 Fiches CP'],['hebdo','📧 Hebdo'],['stats_oci','📊 Stats OCI'],['rapport','📄 Rapport'],['ia','🤖 IA']].map(([id,lbl])=>
+  [['vue','🏠 Vue d\'ensemble'],['meetings','🤝 Meetings'],['tasks','✅ Tasks'],['fiches','📊 Fiches CP'],['hebdo','📧 Hebdo'],['stats_oci','📊 Stats OCI'],['scores','🎯 Scores'],['p360','🏢 Partner 360'],['rapport','📄 Rapport'],['ia','🤖 IA']].map(([id,lbl])=>
     `<button onclick="tmSetSubTab('${id}')" style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;${_tmSubTab===id?'background:#1e2235;color:#fff':'background:transparent;color:#555'}">${lbl}</button>`
   ).join('') +
   `</div>` +
@@ -5343,6 +5390,8 @@ function renderContrat() {
    _tmSubTab==='fiches'  ?renderTmFichesCp(md,mk):
    _tmSubTab==='hebdo'   ?renderTmHebdo(md,mk):
    _tmSubTab==='stats_oci'?renderTmStatsOCI(md,mk):
+   _tmSubTab==='scores'  ?renderTmScores(md,mk):
+   _tmSubTab==='p360'    ?renderTmP360(md,mk):
    _tmSubTab==='ia'      ?renderTmIA(md,mk):
                            renderTmRapportPanel(md,mk,bar,mLabel)) +
 
@@ -5622,6 +5671,239 @@ function tmSubmitQA(mk){
 
 // ── TASKS ─────────────────────────────────────────────────────────
 // ═══════════════════════════════════════════════════════════════════
+// PERFORMANCE SCORE — Score /100 par partenaire
+// ═══════════════════════════════════════════════════════════════════
+function tmPartnerScore(pid, md) {
+  const today=new Date().toISOString().slice(0,10);
+  const mtgs=(md.meetings||[]).filter(m=>m.partenaire===pid);
+  const tasks=(md.tasks||[]).filter(t=>t.partenaire===pid);
+  const done=tasks.filter(t=>t.statut==='fait').length;
+  const overdue=tasks.filter(t=>t.deadline&&t.deadline<today&&t.statut!=='fait').length;
+  const cats=new Set(tasks.map(t=>t.categorie).filter(Boolean));
+  // 4 axes pondérés
+  const activity   = Math.min(mtgs.length*15, 30);                            // 0-30
+  const execution  = tasks.length ? Math.round(done/tasks.length*40) : 0;      // 0-40
+  const reactivity = Math.max(0, 20 - overdue*5);                              // 0-20
+  const diversity  = Math.min(Math.round(cats.size*2.5), 10);                  // 0-10
+  const score = activity + execution + reactivity + diversity;
+  return { score, activity, execution, reactivity, diversity,
+    mtgs:mtgs.length, tasks:tasks.length, done, overdue, cats:cats.size };
+}
+function tmScoreColor(s){ return s>=75?'#22c55e':s>=50?'#f59e0b':s>=25?'#fb923c':'#ef4444'; }
+function tmScoreLabel(s){ return s>=75?'Excellent':s>=50?'Correct':s>=25?'À surveiller':'Critique'; }
+
+function renderTmScores(md,mk){
+  const active=TM_PARTNERS.filter(p=>p.id!=='Autre');
+  const scores=active.map(p=>({p, ...tmPartnerScore(p.id, md)})).sort((a,b)=>b.score-a.score);
+  const globalScore=Math.round(scores.reduce((s,x)=>s+x.score,0)/(scores.length||1));
+  const gCol=tmScoreColor(globalScore);
+  let h=`<div>`;
+  // Score global
+  h+=`<div style="background:linear-gradient(135deg,${gCol}22,#0a0f1e);border:1px solid ${gCol}55;border-radius:10px;padding:16px;margin-bottom:14px;display:flex;align-items:center;gap:18px">`;
+  h+=`<div style="text-align:center;min-width:110px"><div style="font-size:38px;font-weight:800;color:${gCol};line-height:1">${globalScore}</div><div style="font-size:10px;color:#888;margin-top:2px">/100 · ${tmScoreLabel(globalScore)}</div></div>`;
+  h+=`<div style="flex:1"><div style="font-size:12px;color:#fff;font-weight:700;margin-bottom:6px">Health Score global du mois</div>`;
+  h+=`<div style="font-size:11px;color:#888;line-height:1.5">Moyenne pondérée des scores des ${scores.length} partenaires actifs.<br>Axes : activité meetings · exécution des tâches · réactivité (retards) · diversité des sujets abordés.</div>`;
+  h+=`</div></div>`;
+  // Détail par partenaire
+  h+=`<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:10px">`;
+  scores.forEach(({p,score,activity,execution,reactivity,diversity,mtgs,tasks,done,overdue,cats})=>{
+    const col=tmScoreColor(score);
+    h+=`<div style="background:#0a0f1e;border:1px solid ${col}33;border-radius:8px;padding:12px;cursor:pointer" onclick="_tmP360Sel='${p.id}';_tmSubTab='p360';renderContrat()">`;
+    h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
+    h+=`<div style="display:flex;align-items:center;gap:8px"><div style="width:10px;height:10px;border-radius:50%;background:${p.color}"></div><div style="font-size:13px;font-weight:700;color:#fff">${p.label}</div></div>`;
+    h+=`<div style="text-align:right"><span style="font-size:22px;font-weight:800;color:${col}">${score}</span><span style="font-size:10px;color:#555">/100</span></div>`;
+    h+=`</div>`;
+    // Mini bars par axe
+    const axes=[['Activité',activity,30],['Exécution',execution,40],['Réactivité',reactivity,20],['Diversité',diversity,10]];
+    h+=`<div style="display:flex;flex-direction:column;gap:4px;margin-bottom:8px">`;
+    axes.forEach(([lbl,v,max])=>{
+      const pct=Math.round(v/max*100);
+      h+=`<div style="display:flex;align-items:center;gap:6px;font-size:10px"><span style="color:#555;min-width:60px">${lbl}</span><div style="flex:1;background:#060910;height:4px;border-radius:2px"><div style="width:${pct}%;background:${col};height:4px;border-radius:2px"></div></div><span style="color:#888;min-width:32px;text-align:right">${v}/${max}</span></div>`;
+    });
+    h+=`</div>`;
+    // Récap chiffré
+    h+=`<div style="display:flex;gap:8px;font-size:10px;color:#666;border-top:1px solid #1e2235;padding-top:8px">`;
+    h+=`<span>🤝 ${mtgs}</span><span>✅ ${done}/${tasks}</span>`;
+    if(overdue) h+=`<span style="color:#ef4444">⚠ ${overdue} retard</span>`;
+    h+=`<span style="margin-left:auto;color:#5b7cff">Fiche 360 →</span>`;
+    h+=`</div></div>`;
+  });
+  h+=`</div>`;
+  h+=`<div style="margin-top:12px;font-size:10px;color:#444;padding:8px 12px;background:#060910;border-radius:6px;line-height:1.6">`;
+  h+=`<b style="color:#666">Formule de calcul :</b> Activité (30 pts, 15 par meeting, cap 30) · Exécution (40 pts, ratio tâches faites) · Réactivité (20 pts, -5 par tâche en retard) · Diversité (10 pts, 2,5 par catégorie distincte).`;
+  h+=`</div>`;
+  h+=`</div>`; return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// PARTNER 360 — Fiche complète par partenaire
+// ═══════════════════════════════════════════════════════════════════
+function renderTmP360(md,mk){
+  const active=TM_PARTNERS.filter(p=>p.id!=='Autre');
+  if(!_tmP360Sel) _tmP360Sel=active[0].id;
+  const p=TM_PARTNERS.find(x=>x.id===_tmP360Sel)||active[0];
+  const sc=tmPartnerScore(p.id, md);
+  const col=tmScoreColor(sc.score);
+  const mtgs=(md.meetings||[]).filter(m=>m.partenaire===p.id).sort((a,b)=>b.date.localeCompare(a.date));
+  const tasks=(md.tasks||[]).filter(t=>t.partenaire===p.id);
+  const today=new Date().toISOString().slice(0,10);
+  let h=`<div>`;
+  // Sélecteur partenaire
+  h+=`<div style="display:flex;gap:6px;margin-bottom:14px;flex-wrap:wrap">`;
+  active.forEach(x=>{
+    const s=tmPartnerScore(x.id, md).score;
+    const isSel=x.id===p.id;
+    h+=`<button onclick="_tmP360Sel='${x.id}';renderContrat()" style="display:flex;align-items:center;gap:6px;padding:6px 12px;border-radius:6px;border:1px solid ${isSel?x.color:'#1e2235'};background:${isSel?x.color+'22':'#0a0f1e'};color:${isSel?'#fff':'#888'};font-size:11px;font-weight:600;cursor:pointer">`;
+    h+=`<div style="width:8px;height:8px;border-radius:50%;background:${x.color}"></div>${x.label}<span style="color:${tmScoreColor(s)};font-weight:700">${s}</span>`;
+    h+=`</button>`;
+  });
+  h+=`</div>`;
+  // Header partenaire
+  h+=`<div style="background:linear-gradient(135deg,${p.color}22,#0a0f1e);border:1px solid ${p.color}55;border-radius:10px;padding:16px;margin-bottom:14px">`;
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">`;
+  h+=`<div><div style="font-size:20px;font-weight:800;color:#fff">${p.label}</div><div style="font-size:11px;color:#888">${p.type==='telco'?'Opérateur telco':p.type==='content_provider'?'Content Provider':'Autre'}</div></div>`;
+  h+=`<div style="text-align:right"><div style="font-size:32px;font-weight:800;color:${col};line-height:1">${sc.score}</div><div style="font-size:10px;color:#888">${tmScoreLabel(sc.score)}</div></div>`;
+  h+=`</div>`;
+  // Récap chiffres
+  h+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px">`;
+  const stats=[['🤝 Meetings',sc.mtgs,'#5b7cff'],['✅ Faites',sc.done+'/'+sc.tasks,'#22c55e'],['⚠ En retard',sc.overdue,sc.overdue?'#ef4444':'#555'],['🎯 Sujets',sc.cats,'#a78bfa']];
+  stats.forEach(([l,v,c])=>{ h+=`<div style="background:#060910;border-radius:6px;padding:8px;text-align:center"><div style="font-size:18px;font-weight:700;color:${c}">${v}</div><div style="font-size:10px;color:#555">${l}</div></div>`; });
+  h+=`</div></div>`;
+  // Campagnes du partenaire
+  const campSt=typeof getCampState==='function'?getCampState():{};
+  const pCamps=(campSt[mk]||[]).filter(c=>c.operateur===(p.type==='telco'?p.id.replace(' CIV',''):p.id));
+  const pCampsLabel=p.type==='telco'?(p.id==='MTN CIV'?'MTN':'OCI'):'';
+  // Pour les content providers, chercher par canal
+  const pCampsCh=p.type!=='telco'?(campSt[mk]||[]).filter(c=>c.canal===p.label):[];
+  const allPCamps=p.type==='telco'?pCamps:pCampsCh;
+  if(allPCamps.length){
+    h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:12px;margin-bottom:12px">`;
+    h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:8px">📣 Campagnes du mois (${allPCamps.length})</div>`;
+    h+=`<div style="display:flex;gap:4px;flex-wrap:wrap">`;
+    allPCamps.forEach(c=>{
+      const tm=typeof CAMP_TYPE_META!=='undefined'?(CAMP_TYPE_META[c.type]||CAMP_TYPE_META.other):{icon:'📌',label:c.type,color:'#555'};
+      h+=`<div style="background:#060910;border:1px solid ${c.non_execute?'#ef444433':'#1e2235'};border-radius:5px;padding:4px 8px;font-size:10px;${c.non_execute?'text-decoration:line-through;color:#555':'color:#ccc'}">${c.date.slice(5)} ${tm.icon} ${c.canal}</div>`;
+    });
+    h+=`</div></div>`;
+  }
+  // Deux colonnes : Meetings récents · Tâches
+  h+=`<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">`;
+  // Col meetings
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:12px">`;
+  h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:10px">🤝 Meetings du mois (${mtgs.length})</div>`;
+  if(!mtgs.length){ h+=`<div style="font-size:11px;color:#444;padding:12px 0;text-align:center">Aucun meeting</div>`; }
+  mtgs.forEach(m=>{
+    h+=`<div onclick="_tmSubTab='meetings';_tmExpMtg='${m.id}';renderContrat()" style="padding:8px 0;border-bottom:1px solid #1e2235;cursor:pointer">`;
+    h+=`<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:3px"><span style="font-size:11px;color:#ccc;font-weight:600">${m.date}</span><span style="font-size:9px;color:#555">${m.mType||''}</span></div>`;
+    if(m.lieu) h+=`<div style="font-size:10px;color:#666;margin-bottom:2px">📍 ${m.lieu}</div>`;
+    h+=`<div style="font-size:10px;color:#555">${(m.points||[]).length} point(s) abordé(s)</div>`;
+    h+=`</div>`;
+  });
+  h+=`</div>`;
+  // Col tasks
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:12px">`;
+  h+=`<div style="font-size:11px;font-weight:700;color:#fff;margin-bottom:10px">✅ Tâches (${tasks.length})</div>`;
+  if(!tasks.length){ h+=`<div style="font-size:11px;color:#444;padding:12px 0;text-align:center">Aucune tâche</div>`; }
+  const sortedT=tasks.slice().sort((a,b)=>{ const o={a_faire:0,en_cours:1,bloque:2,fait:3}; return (o[a.statut]||0)-(o[b.statut]||0); });
+  sortedT.forEach(t=>{
+    const ovd=t.deadline&&t.deadline<today&&t.statut!=='fait';
+    h+=`<div style="padding:6px 0;border-bottom:1px solid #1e2235;font-size:11px">`;
+    h+=`<div style="display:flex;align-items:flex-start;gap:6px">`;
+    h+=`<span style="color:${TM_STATUT_COLORS[t.statut]};flex-shrink:0">${TM_STATUT_ICONS[t.statut]}</span>`;
+    h+=`<div style="flex:1;color:#ccc;${t.statut==='fait'?'text-decoration:line-through;color:#555':''}">${t.text.slice(0,80)}${t.text.length>80?'…':''}</div>`;
+    h+=`</div>`;
+    h+=`<div style="display:flex;gap:8px;font-size:9px;margin-top:2px;margin-left:16px;color:#555">`;
+    if(t.responsable) h+=`<span>👤 ${t.responsable}</span>`;
+    if(t.deadline)    h+=`<span style="${ovd?'color:#ef4444;font-weight:700':''}">📅 ${t.deadline}${ovd?' ⚠':''}</span>`;
+    h+=`</div></div>`;
+  });
+  h+=`</div>`;
+  h+=`</div>`;
+  h+=`</div>`; return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════
+// DECISION CENTER IA — 3 priorités du jour
+// ═══════════════════════════════════════════════════════════════════
+async function tmGenerateDecisions(mk){
+  const cfg=getAICfg(); if(!cfg||!cfg.key){ alert('Configurez d\'abord la clé API Anthropic'); return; }
+  const s=initTaskMan(); const md=getMonthData(s,mk);
+  _tmDecLoading=true; _tmDecisions=null; renderContrat();
+  const today=new Date().toISOString().slice(0,10);
+  // Contexte : tâches actives, retards, scores partenaires
+  const activeTasks=(md.tasks||[]).filter(t=>t.statut!=='fait').map(t=>({
+    id:t.id, texte:t.text, partenaire:t.partenaire, categorie:t.categorie,
+    responsable:t.responsable, deadline:t.deadline, statut:t.statut,
+    en_retard:!!(t.deadline&&t.deadline<today)
+  }));
+  const scoresCtx=TM_PARTNERS.filter(p=>p.id!=='Autre').map(p=>{
+    const sc=tmPartnerScore(p.id, md);
+    return { partenaire:p.id, score:sc.score, meetings:sc.mtgs, taches:sc.tasks, retards:sc.overdue };
+  });
+  const recentMtgs=(md.meetings||[]).slice().sort((a,b)=>b.date.localeCompare(a.date)).slice(0,3).map(m=>({date:m.date,partenaire:m.partenaire,nb_points:(m.points||[]).length}));
+  // Contexte campagnes
+  const campCtx=(()=>{try{ const cs=getCampState(); const pc=cs[mk]||[]; return { total:pc.length, non_executees:pc.filter(c=>c.non_execute).length, bareme_mtn:pc.filter(c=>c.operateur==='MTN'&&c.bareme&&!c.non_execute&&c.date<=today).length, bareme_oci:pc.filter(c=>c.operateur==='OCI'&&c.bareme&&!c.non_execute&&c.date<=today).length, prochaines:pc.filter(c=>c.date>today).slice(0,5).map(c=>({date:c.date,canal:c.canal,type:c.type,operateur:c.operateur})) }; }catch(_){return null;}})();
+  const prompt=`Tu es un Growth Manager expérimenté chez un opérateur VAS Telecom (StarNews Mobile Côte d'Ivoire). Analyse le contexte et propose les 3 décisions/actions prioritaires pour aujourd'hui.
+
+Date : ${today}
+Scores partenaires : ${JSON.stringify(scoresCtx)}
+Tâches actives (${activeTasks.length}) : ${JSON.stringify(activeTasks.slice(0,25))}
+Derniers meetings : ${JSON.stringify(recentMtgs)}
+Campagnes : ${JSON.stringify(campCtx)}
+
+Retourne UNIQUEMENT un objet JSON valide (rien d'autre) avec 3 décisions priorisées :
+{
+  "decisions": [
+    {
+      "priorite": 1,
+      "titre": "phrase courte et actionnable (max 60 caractères)",
+      "partenaire": "MTN CIV | OCI | AL Bayane | 7Info | Life TV | Autre",
+      "categorie": "suivi_telco | meeting_partenaires | product | marketing | creator_academy | createurs",
+      "urgence": "haute | moyenne | basse",
+      "impact": "1 phrase sur l'impact business estimé",
+      "action": "action concrète à faire aujourd'hui (1-2 phrases)",
+      "responsable": "Mounirou ou nom pertinent",
+      "raison": "1 phrase expliquant pourquoi c'est prioritaire (données à l'appui)"
+    }
+  ]
+}
+
+Règles : priorise les tâches en retard critiques, les partenaires à score faible, les opportunités de croissance négligées. Sois concret, pas générique.`;
+  try {
+    const res=await fetch('https://api.anthropic.com/v1/messages',{
+      method:'POST',
+      headers:{'x-api-key':cfg.key,'anthropic-version':'2023-06-01','content-type':'application/json','anthropic-dangerous-direct-browser-access':'true'},
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:1800,messages:[{role:'user',content:prompt}]})
+    });
+    if(!res.ok){ const e=await res.json(); throw new Error(e.error?.message||`HTTP ${res.status}`); }
+    const data=await res.json();
+    const txt=data.content[0].text.trim();
+    const m=txt.match(/\{[\s\S]*\}/);
+    if(!m) throw new Error('Réponse JSON introuvable');
+    _tmDecisions=JSON.parse(m[0]);
+  } catch(e){ _tmDecisions={error:e.message}; }
+  _tmDecLoading=false; renderContrat();
+}
+
+function tmDecisionToTask(idx, mk){
+  if(!_tmDecisions||!_tmDecisions.decisions) return;
+  const d=_tmDecisions.decisions[idx]; if(!d) return;
+  saveTmMutation(s=>{
+    const md=getMonthData(s,mk);
+    if(!md.tasks) md.tasks=[];
+    md.tasks.push({
+      id:tmGenId(), text:d.titre+(d.action?' — '+d.action:''),
+      partenaire:d.partenaire||'OCI', categorie:d.categorie||'product',
+      responsable:d.responsable||'Mounirou',
+      date_creation:new Date().toISOString().slice(0,10),
+      deadline:new Date().toISOString().slice(0,10),
+      statut:'a_faire', source:'decision_ai'
+    });
+  });
+  _tmSubTab='tasks'; renderContrat();
+}
+
+// ═══════════════════════════════════════════════════════════════════
 // IA — Analyse de notes brutes
 // ═══════════════════════════════════════════════════════════════════
 const AI_CFG_KEY='snv_ai_cfg';
@@ -5735,6 +6017,40 @@ function renderTmIA(md,mk){
     h+=`<button onclick="saveAIKey()" style="font-size:11px;color:#fff;background:#5b7cff;border:none;padding:8px 16px;border-radius:5px;cursor:pointer;white-space:nowrap">Enregistrer</button>`;
     h+=`</div>`;
     h+=`<div style="font-size:10px;color:#444">Créez une clé sur <a href="https://console.anthropic.com/settings/keys" target="_blank" style="color:#5b7cff">console.anthropic.com</a> · Stockée uniquement dans ce navigateur</div>`;
+  }
+  h+=`</div>`;
+  // Decision Center
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;margin-bottom:12px">`;
+  h+=`<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">`;
+  h+=`<div style="font-size:11px;font-weight:700;color:#fff">🎯 Decision Center — 3 priorités du jour</div>`;
+  if(_tmDecLoading){
+    h+=`<button disabled style="font-size:11px;color:#555;background:#1e2235;border:none;padding:7px 14px;border-radius:5px">⏳ Analyse…</button>`;
+  } else {
+    h+=`<button onclick="tmGenerateDecisions('${mk}')" style="font-size:11px;color:#fff;background:#22c55e;border:none;padding:7px 14px;border-radius:5px;cursor:pointer;font-weight:600">${_tmDecisions?'🔄 Regénérer':'▶ Générer'}</button>`;
+  }
+  h+=`</div>`;
+  h+=`<div style="font-size:10px;color:#555;margin-bottom:10px">Claude analyse tes scores partenaires, tâches en retard et meetings récents pour te proposer 3 actions concrètes à faire aujourd'hui.</div>`;
+  if(_tmDecisions){
+    if(_tmDecisions.error){
+      h+=`<div style="background:#ef444411;border:1px solid #ef444433;border-radius:6px;padding:10px;color:#ef4444;font-size:11px">❌ ${_tmDecisions.error}</div>`;
+    } else if(_tmDecisions.decisions){
+      _tmDecisions.decisions.forEach((d,i)=>{
+        const urgCol=d.urgence==='haute'?'#ef4444':d.urgence==='moyenne'?'#f59e0b':'#5b7cff';
+        const partner=TM_PARTNERS.find(x=>x.id===d.partenaire);
+        h+=`<div style="background:#060910;border-left:3px solid ${urgCol};border-radius:5px;padding:10px 12px;margin-bottom:8px">`;
+        h+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">`;
+        h+=`<span style="background:${urgCol};color:#fff;font-size:10px;font-weight:700;padding:2px 7px;border-radius:3px">#${d.priorite||i+1}</span>`;
+        if(partner) h+=`<span style="color:${partner.color};font-size:10px;font-weight:600">${partner.label}</span>`;
+        h+=`<span style="font-size:9px;color:#555;text-transform:uppercase;letter-spacing:.05em">${d.urgence||''}</span>`;
+        h+=`<button onclick="tmDecisionToTask(${i},'${mk}')" style="margin-left:auto;font-size:10px;color:#5b7cff;background:#5b7cff11;border:1px solid #5b7cff33;padding:2px 8px;border-radius:3px;cursor:pointer">+ Tâche</button>`;
+        h+=`</div>`;
+        h+=`<div style="font-size:12px;color:#fff;font-weight:600;margin-bottom:5px">${d.titre||''}</div>`;
+        if(d.action)     h+=`<div style="font-size:11px;color:#ccc;margin-bottom:4px">▸ ${d.action}</div>`;
+        if(d.impact)     h+=`<div style="font-size:10px;color:#888;margin-bottom:3px">📊 <b style="color:#aaa">Impact :</b> ${d.impact}</div>`;
+        if(d.raison)     h+=`<div style="font-size:10px;color:#666">💡 ${d.raison}</div>`;
+        h+=`</div>`;
+      });
+    }
   }
   h+=`</div>`;
   // Notes input
@@ -6769,7 +7085,7 @@ const CAMP_TYPE_META = {
 const CAMP_BAREME_ICON = { MTN:'🔔', OCI:'📕' };
 
 function getCampState(){ try{ return JSON.parse(localStorage.getItem(CAMP_KEY)||'null')||{}; }catch(e){ return {}; } }
-function setCampState(s){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); }
+function setCampState(s){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); if(typeof gistPush==='function') gistPush(); }
 
 function campPeriodFromDate(d){
   const [y,m,day] = d.split('-').map(Number);
@@ -6808,6 +7124,20 @@ function campSaveNote(id,period,val){
 }
 function campSetSubTab(t){ _campSubTab=t; renderCampagnes(); }
 function campSetPeriod(p){ _campPeriod=p; renderCampagnes(); }
+function campDelete(id,period){ if(!confirm('Supprimer cette campagne ?')) return; const s=getCampState(); if(!s[period]) return; s[period]=s[period].filter(x=>x.id!==id); setCampState(s); renderCampagnes(); }
+function campAddManual(period){
+  const date=(document.getElementById('campManDate')||{}).value||'';
+  const canal=(document.getElementById('campManCanal')||{}).value||'';
+  const type=(document.getElementById('campManType')||{}).value||'other';
+  const op=(document.getElementById('campManOp')||{}).value||'MTN';
+  const bareme=!!(document.getElementById('campManBareme')||{}).checked;
+  if(!date||!canal){ alert('Date et canal requis.'); return; }
+  const id=`c_${op}_${date}_${canal}_${type}_${Date.now()}`.replace(/[\s\/]/g,'_').toLowerCase();
+  const s=getCampState(); const p=campPeriodFromDate(date);
+  if(!s[p]) s[p]=[];
+  s[p].push({id,operateur:op,canal,type,date,bareme,non_execute:false,note:'',source_doc:'saisie manuelle',period:p});
+  setCampState(s); _campPeriod=p; renderCampagnes();
+}
 
 // ── Import XLSX ──────────────────────────────────────────────────
 function campImport(){ const i=document.getElementById('campFileInput'); if(i) i.click(); }
@@ -6903,6 +7233,26 @@ function campBaseline(canal,dtype,date){
   return {rev:dayVal[1],revXAF:dayVal[1],newS:dayVal[3],deltaRev,deltaNew,avgRev:Math.round(avgRev),avgNew:Math.round(avgNew)};
 }
 
+// Baseline V2 : même jour de semaine sur les 4 dernières semaines
+function campBaselineV2(canal,dtype,date){
+  if(typeof CP_EXT_DATA==='undefined') return null;
+  const chData=CP_EXT_DATA[canal]; if(!chData) return null;
+  const src=chData.organic&&Object.keys(chData.organic).length?chData.organic:chData.bundle||{};
+  const dow=new Date(date+'T12:00:00').getDay();
+  const allDates=Object.keys(src).filter(d=>d<date).sort();
+  const sameDow=allDates.filter(d=>new Date(d+'T12:00:00').getDay()===dow).slice(-4);
+  const baseDates=sameDow.length>=2?sameDow:allDates.slice(-7);
+  if(baseDates.length<2) return null;
+  const vals=baseDates.map(d=>src[d]);
+  const avgRev=vals.reduce((a,v)=>a+(v[1]||0),0)/vals.length;
+  const avgNew=vals.reduce((a,v)=>a+(v[3]||0),0)/vals.length;
+  const dayVal=src[date]; if(!dayVal) return null;
+  const deltaRev=avgRev>0?Math.round((dayVal[1]-avgRev)/avgRev*100):null;
+  const deltaNew=avgNew>0?Math.round((dayVal[3]-avgNew)/avgNew*100):null;
+  const gainXAF=avgRev>0?Math.round(dayVal[1]-avgRev):null;
+  return {rev:dayVal[1],revXAF:dayVal[1],newS:dayVal[3],deltaRev,deltaNew,avgRev:Math.round(avgRev),avgNew:Math.round(avgNew),gainXAF};
+}
+
 // ── Render ───────────────────────────────────────────────────────
 function renderCampagnes(){
   const el=document.getElementById('campagnesMain'); if(!el) return;
@@ -6930,8 +7280,17 @@ function renderCampagnes(){
   // Import button
   h+=`<div style="display:flex;gap:8px">`;
   h+=`<input type="file" id="campFileInput" accept=".xlsx" onchange="campHandleFile(event)" style="display:none">`;
-  h+=`<button onclick="campImport()" style="background:#1e3a5f;border:1px solid #2a5080;color:#60a5fa;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">📂 Importer planning opérateur</button>`;
+  h+=`<button onclick="campImport()" style="background:#1e3a5f;border:1px solid #2a5080;color:#60a5fa;padding:7px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">📂 Importer XLSX</button>`;
   h+=`</div></div>`;
+  // Saisie manuelle
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:10px;margin-bottom:14px;display:flex;gap:6px;align-items:flex-end;flex-wrap:wrap">`;
+  h+=`<div><div style="font-size:9px;color:#444;margin-bottom:2px">Date</div><input id="campManDate" type="date" value="${new Date().toISOString().slice(0,10)}" style="background:#060a14;border:1px solid #1e2235;color:#ccc;padding:4px 6px;border-radius:4px;font-size:11px"></div>`;
+  h+=`<div><div style="font-size:9px;color:#444;margin-bottom:2px">Canal</div><select id="campManCanal" style="background:#060a14;border:1px solid #1e2235;color:#ccc;padding:4px 6px;border-radius:4px;font-size:11px">${Object.values(CAMP_CH_MAP).filter((v,i,a)=>a.indexOf(v)===i).map(c=>`<option value="${c}">${c}</option>`).join('')}</select></div>`;
+  h+=`<div><div style="font-size:9px;color:#444;margin-bottom:2px">Type</div><select id="campManType" style="background:#060a14;border:1px solid #1e2235;color:#ccc;padding:4px 6px;border-radius:4px;font-size:11px">${Object.entries(CAMP_TYPE_META).map(([k,v])=>`<option value="${k}">${v.icon} ${v.label}</option>`).join('')}</select></div>`;
+  h+=`<div><div style="font-size:9px;color:#444;margin-bottom:2px">Opérateur</div><select id="campManOp" style="background:#060a14;border:1px solid #1e2235;color:#ccc;padding:4px 6px;border-radius:4px;font-size:11px"><option value="MTN">MTN</option><option value="OCI">OCI</option></select></div>`;
+  h+=`<div style="display:flex;align-items:center;gap:4px;padding-bottom:2px"><input id="campManBareme" type="checkbox" checked><span style="font-size:10px;color:#555">Barème</span></div>`;
+  h+=`<button onclick="campAddManual('${period}')" style="background:#22c55e22;border:1px solid #22c55e33;color:#22c55e;padding:6px 14px;border-radius:5px;cursor:pointer;font-size:11px;font-weight:600">+ Ajouter</button>`;
+  h+=`</div>`;
 
   // Barème counters
   const mtnPct=Math.min(Math.round(mtn/3*100),100);
@@ -7003,6 +7362,7 @@ function renderCampagnes(){
           h+=`</div>`;
           // Non-execute toggle
           h+=`<button onclick="campToggleNonExecute('${c.id}','${period}')" title="${isNE?'Réactiver':'Marquer non exécutée'}" style="background:${isNE?'#2a0000':'none'};border:1px solid ${isNE?'#ef444433':'#1e2235'};color:${isNE?'#ef4444':'#333'};padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;white-space:nowrap">${isNE?'↩ Réactiver':'⚠️ Non exec.'}</button>`;
+          h+=`<button onclick="campDelete('${c.id}','${period}')" title="Supprimer" style="background:none;border:1px solid #1e2235;color:#333;padding:3px 6px;border-radius:4px;cursor:pointer;font-size:11px">🗑</button>`;
           h+=`</div>`;
           // Note field if non_execute
           if(isNE){
@@ -7023,12 +7383,12 @@ function renderCampagnes(){
 }
 
 function renderCampAnalytics(camps,period,today){
-  const executed=camps.filter(c=>c.bareme&&!c.non_execute&&c.date<=today);
+  const executed=camps.filter(c=>!c.non_execute&&c.date<=today);
   if(!executed.length) return `<div style="text-align:center;padding:60px;color:#333"><div style="font-size:40px">📊</div><div style="color:#555;margin-top:8px">Aucune campagne exécutée sur cette période.<br>Importe un planning et marque les campagnes non exécutées si nécessaire.</div></div>`;
 
   // Impact per campaign
   const impacts=executed.map(c=>{
-    const bl=campBaseline(c.canal,c.type,c.date);
+    const bl=campBaselineV2(c.canal,c.type,c.date);
     return {...c,impact:bl};
   }).filter(c=>c.impact);
 
@@ -7044,9 +7404,12 @@ function renderCampAnalytics(camps,period,today){
   const avgDeltaRev=withDelta.length?Math.round(withDelta.reduce((a,c)=>a+c.impact.deltaRev,0)/withDelta.length):null;
   const positive=withDelta.filter(c=>c.impact.deltaRev>0).length;
 
-  h+=`<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px">`;
+  h+=`<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:16px">`;
+  const totalGainXAF=impacts.filter(c=>c.impact.gainXAF!=null).reduce((a,c)=>a+c.impact.gainXAF,0);
+  const gainCol=totalGainXAF>=0?'#22c55e':'#ef4444';
   h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:#60a5fa">${impacts.length}</div><div style="font-size:10px;color:#444">Campagnes analysées</div></div>`;
   h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:${avgDeltaRev>0?'#22c55e':'#ef4444'}">${avgDeltaRev!==null?(avgDeltaRev>0?'+':'')+avgDeltaRev+'%':'—'}</div><div style="font-size:10px;color:#444">Impact rev. moyen vs baseline</div></div>`;
+  h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:${gainCol}">${totalGainXAF>=0?'+':''}${totalGainXAF.toLocaleString('fr-FR')} XAF</div><div style="font-size:10px;color:#444">Gain cumulé vs baseline</div></div>`;
   h+=`<div style="background:#0a0f1e;border:1px solid #1e2235;border-radius:8px;padding:14px;text-align:center"><div style="font-size:22px;font-weight:800;color:#22c55e">${positive}/${withDelta.length}</div><div style="font-size:10px;color:#444">Jours revenus > baseline</div></div>`;
   h+=`</div>`;
 
@@ -7076,7 +7439,7 @@ function renderCampAnalytics(camps,period,today){
   // Detail table
   h+=`<div style="font-size:12px;font-weight:700;color:#aaa;margin-bottom:8px;text-transform:uppercase;letter-spacing:1px">Détail par date</div>`;
   h+=`<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">`;
-  h+=`<tr style="color:#333;border-bottom:1px solid #0d1220"><th style="text-align:left;padding:6px 8px">Date</th><th style="text-align:left;padding:6px 8px">Canal</th><th style="text-align:left;padding:6px 8px">Type</th><th style="text-align:right;padding:6px 8px">Rev. XAF</th><th style="text-align:right;padding:6px 8px">Δ Rev</th><th style="text-align:right;padding:6px 8px">Nouveaux</th><th style="text-align:right;padding:6px 8px">Δ Abonnés</th></tr>`;
+  h+=`<tr style="color:#333;border-bottom:1px solid #0d1220"><th style="text-align:left;padding:6px 8px">Date</th><th style="text-align:left;padding:6px 8px">Canal</th><th style="text-align:left;padding:6px 8px">Type</th><th style="text-align:right;padding:6px 8px">Rev. XAF</th><th style="text-align:right;padding:6px 8px">Δ Rev</th><th style="text-align:right;padding:6px 8px">Gain XAF</th><th style="text-align:right;padding:6px 8px">Nouveaux</th><th style="text-align:right;padding:6px 8px">Δ Abonnés</th></tr>`;
   impacts.sort((a,b)=>a.date.localeCompare(b.date)).forEach(c=>{
     const {rev,deltaRev,newS,deltaNew}=c.impact;
     const tm=CAMP_TYPE_META[c.type]||CAMP_TYPE_META.other;
@@ -7088,6 +7451,8 @@ function renderCampAnalytics(camps,period,today){
     h+=`<td style="padding:6px 8px"><span style="color:${tm.color}">${tm.icon} ${tm.label}</span></td>`;
     h+=`<td style="padding:6px 8px;text-align:right;color:#888">${rev?rev.toLocaleString('fr-FR'):'—'}</td>`;
     h+=`<td style="padding:6px 8px;text-align:right;font-weight:700;color:${rCol}">${deltaRev!==null?(deltaRev>0?'+':'')+deltaRev+'%':'—'}</td>`;
+    const gXAF=c.impact.gainXAF; const gCol2=gXAF>0?'#22c55e':gXAF<0?'#ef4444':'#888';
+    h+=`<td style="padding:6px 8px;text-align:right;font-weight:600;color:${gCol2}">${gXAF!=null?(gXAF>=0?'+':'')+gXAF.toLocaleString('fr-FR'):'—'}</td>`;
     h+=`<td style="padding:6px 8px;text-align:right;color:#888">${newS??'—'}</td>`;
     h+=`<td style="padding:6px 8px;text-align:right;font-weight:700;color:${nCol}">${deltaNew!==null?(deltaNew>0?'+':'')+deltaNew+'%':'—'}</td>`;
     h+=`</tr>`;
