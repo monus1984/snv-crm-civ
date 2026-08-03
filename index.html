@@ -563,10 +563,11 @@ summary{font-weight:700}
   <div class="nav-tab"        onclick="showTab('growth',this)">📈 Growth</div>
   <div class="nav-tab"        onclick="showTab('analyse',this)">🔍 Analyse</div>
   <div class="nav-tab"        onclick="showTab('channels',this)">📺 Channels</div>
+  <div class="nav-tab"        onclick="showTab('sante',this)">🩺 Santé</div>
     <div class="nav-tab"        onclick="showTab('history',this)" id="histTab">🗂 Historique</div>
   <div class="nav-tab"        onclick="showTab('upload',this)">📥 Données</div>
   <div class="nav-tab"        onclick="showTab('copier',this)">📋 Copier-Coller</div>
-    <div class="nav-tab"        onclick="showTab('contrat',this)">📋 Task Mgmt <span id="tmOverdueBadge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;vertical-align:middle;margin-left:3px">0</span></div>
+    <div class="nav-tab"        onclick="showTab('contrat',this)">📋 Cahier de charge <span id="tmOverdueBadge" style="display:none;background:#ef4444;color:#fff;font-size:9px;font-weight:700;border-radius:10px;padding:1px 6px;vertical-align:middle;margin-left:3px">0</span></div>
   <div class="nav-tab"        onclick="showTab('campagnes',this)">📣 Campagnes</div>
   <div class="nav-tab"        onclick="showTab('finance',this)">💰 Finance<span id="finNavBadge" style="display:none;background:#dc2626;color:#fff;font-size:9.5px;font-weight:700;border-radius:20px;padding:1.5px 6px;margin-left:6px;vertical-align:middle"></span></div>
 </nav>
@@ -591,7 +592,7 @@ summary{font-weight:700}
 
 <!-- ═══════════ UPLOAD ═══════════ -->
 <div class="section" id="tab-upload">
-<div class="merged-stab-bar" data-state="_dataTab" style="display:flex;gap:4px;margin-bottom:18px;background:#f8fafc;border-radius:8px;padding:4px"><button class="merged-stab" data-tab="upload" onclick="setSubTab('_dataTab','upload')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">📤 Téléversement</button><button class="merged-stab" data-tab="fichiers" onclick="setSubTab('_dataTab','fichiers')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">⚡ Sync auto</button><button class="merged-stab" data-tab="deploiement" onclick="setSubTab('_dataTab','deploiement')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">🚀 Déploiement</button></div>
+<div class="merged-stab-bar" data-state="_dataTab" style="display:flex;gap:4px;margin-bottom:18px;background:#f8fafc;border-radius:8px;padding:4px"><button class="merged-stab" data-tab="upload" onclick="setSubTab('_dataTab','upload')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">📤 Téléversement</button><button class="merged-stab" data-tab="fichiers" onclick="setSubTab('_dataTab','fichiers')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">⚡ Sync auto</button><button class="merged-stab" data-tab="deploiement" onclick="setSubTab('_dataTab','deploiement')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">🚀 Déploiement</button><button class="merged-stab" data-tab="qualite" onclick="_dataTab='qualite';this.closest('.merged-stab-bar').querySelectorAll('.merged-stab').forEach(b=>b.classList.toggle('active',b===this));document.querySelectorAll('[id^=upload-block-]').forEach(d=>d.style.display='none');document.getElementById('upload-block-qualite').style.display='';renderQualite()">🔍 Qualité</button></div>
   <div id="upload-block-upload">
 <div class="section-header">
     <h2>Téléversement des fichiers</h2>
@@ -700,6 +701,12 @@ summary{font-weight:700}
         </button>
       </div>
       <div id="localBackupStatus" style="margin-top:8px;font-size:11px;color:#64748b"></div>
+      <div style="margin-top:12px">
+        <button onclick="renderVersionedBackups(true)" style="padding:5px 12px;background:#fff;border:1px solid #e2e8f0;color:#64748b;border-radius:6px;font-size:11px;cursor:pointer">📋 Versions sauvegardées</button>
+        <div id="versionedBackupsPanel" style="display:none;margin-top:10px;background:#fff;border:1px solid #e2e8f0;border-radius:8px;padding:12px;font-size:11px">
+          <div id="versionedBackupsList"><div style="color:#94a3b8">Chargement...</div></div>
+        </div>
+      </div>
     </div>
 
     <!-- Fallback manuel -->
@@ -866,6 +873,14 @@ summary{font-weight:700}
   </div>
   </div>
 </div>
+
+  <div id="upload-block-qualite" style="display:none">
+    <div class="section-header">
+      <h2>🔍 Qualité des données</h2>
+      <p>Couverture par date · Chaînes intermittentes · Anomalies de chargement</p>
+    </div>
+    <div id="qualiteContent"><div style="color:#94a3b8;font-size:12px;padding:20px">Cliquez sur l'onglet Qualité pour lancer l'analyse.</div></div>
+  </div>
 
 
 <!-- ═══════════ DASHBOARD ═══════════ -->
@@ -1127,6 +1142,35 @@ summary{font-weight:700}
   </div>
 </div>
 
+<!-- ═══════════ SANTÉ CHAÎNES ═══════════ -->
+<div class="section" id="tab-sante">
+  <div class="section-header">
+    <h2>🩺 Santé des chaînes</h2>
+    <p>Classement · Actifs · Taux de facturation · ARPU · Tendance · Anomalies</p>
+  </div>
+  <div id="santeEmpty" class="alert alert-info">Besoin d'au moins 2 jours de données.</div>
+  <div id="santeMain" style="display:none">
+    <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:14px">
+      <select id="santePeriod" onchange="renderSante()" style="background:#fff;border:1px solid #e2e8f0;color:#64748b;border-radius:6px;padding:5px 10px;font-size:12px">
+        <option value="7">7 jours</option><option value="14" selected>14 jours</option><option value="30">30 jours</option><option value="60">60 jours</option>
+      </select>
+      <select id="santeOp" onchange="renderSante()" style="background:#fff;border:1px solid #e2e8f0;color:#64748b;border-radius:6px;padding:5px 10px;font-size:12px">
+        <option value="all">Tous opérateurs</option><option value="mtn">MTN</option><option value="oci">OCI</option>
+      </select>
+      <select id="santeSort" onchange="renderSante()" style="background:#fff;border:1px solid #e2e8f0;color:#64748b;border-radius:6px;padding:5px 10px;font-size:12px">
+        <option value="actifs">Trier : Actifs</option><option value="score">Trier : Score santé</option><option value="billing">Trier : Taux facturation</option><option value="arpu">Trier : ARPU</option><option value="trend">Trier : Tendance</option>
+      </select>
+      <span id="santeAlertBadge" style="display:none;padding:3px 10px;background:#fef3c7;color:#b45309;border:1px solid #fde68a;border-radius:20px;font-size:11px;font-weight:700"></span>
+    </div>
+    <div id="santeAnomalies" style="margin-bottom:14px"></div>
+    <div id="santeContent"></div>
+    <div style="margin-top:20px;padding:12px 14px;background:#f8fafc;border-radius:8px;border:1px solid #e2e8f0;font-size:11px;color:#94a3b8">
+      <strong>Score santé</strong> : 0–100. Actifs (40pts) + ARPU (20pts) + Tendance (20pts) + Stabilité CV (20pts).
+      Taux de facturation disponible sur les canaux organiques uniquement.
+    </div>
+  </div>
+</div>
+
 <!-- ═══════════ GROWTH ═══════════ -->
 <div class="section" id="tab-growth">
   <div class="section-header">
@@ -1240,10 +1284,11 @@ function showTab(name, el) {
   if (name === 'history')   renderHistory();
   if (name === 'analyse')  { if(_analyseTab==='insights') renderInsights(); else renderAnalyse(); }
   if (name === 'channels')  renderChannels();
+  if (name === 'sante')    renderSante();
   if (name === 'upload')   { if(_dataTab==='fichiers') renderFiles(); }
   if (name === 'campagnes') renderCampagnes();
   if (name === 'finance')   renderFinance();
-  const _analyticsTabs = ['dashboard','growth','analyse','channels','history'];
+  const _analyticsTabs = ['dashboard','growth','analyse','channels','sante','history'];
   const _sb = document.getElementById('synthBar');
   if (_sb) _sb.style.display = _analyticsTabs.includes(name) ? 'block' : 'none';
 }
@@ -5453,6 +5498,8 @@ async function crmBackupWrite(verbose) {
       v:2, ts:new Date().toISOString(),
       snv_history_v1:       getRaw(),
       snv_taskman_v1:       JSON.parse(localStorage.getItem('snv_taskman_v1')||'null'),
+      snv_campagnes_v1:     JSON.parse(localStorage.getItem(CAMP_KEY)||'null'),
+      snv_cp_active:        JSON.parse(localStorage.getItem('snv_cp_active')||'null'),
       snv_campagnes_sync_v1:JSON.parse(localStorage.getItem(CAMP_SYNC_KEY)||'null'),
       snv_perf_daily_v1:    JSON.parse(localStorage.getItem(CAMP_PERF_KEY)||'null'),
       snv_camp_perf_v1:     JSON.parse(localStorage.getItem('snv_camp_perf_v1')||'null'),
@@ -5465,6 +5512,8 @@ async function crmBackupWrite(verbose) {
     const ts = new Date().toLocaleTimeString('fr-FR',{hour:'2-digit',minute:'2-digit'});
     _crmUpdateBackupBadge('🟢 ' + days + ' j — ' + ts, true);
     if (verbose) { const el=document.getElementById('localBackupStatus'); if(el) el.textContent='✅ Sauvegarde locale OK — '+days+' jours, '+ts; }
+    // Versioned snapshot in IndexedDB
+    try { await crmSnapshotPush(payload); } catch(_) {}
   } catch(e) {
     _crmUpdateBackupBadge('⚠️ Erreur', false);
     console.warn('crmBackupWrite:', e.message);
@@ -5505,11 +5554,16 @@ async function _crmBackupApply(file) {
       setH(data.snv_history_v1); done.push(Object.keys(data.snv_history_v1).length + ' jours gateway');
     }
     if (data.snv_taskman_v1)        { localStorage.setItem('snv_taskman_v1', JSON.stringify(data.snv_taskman_v1)); done.push('Task Management'); }
-    if (data.snv_campagnes_sync_v1) { localStorage.setItem(CAMP_SYNC_KEY,   JSON.stringify(data.snv_campagnes_sync_v1)); done.push('Campagnes'); }
+    if (data.snv_campagnes_v1)      { localStorage.setItem(CAMP_KEY,        JSON.stringify(data.snv_campagnes_v1));
+                                      let _n=0; try{ Object.keys(data.snv_campagnes_v1).forEach(function(k){ _n+=(data.snv_campagnes_v1[k]||[]).length; }); }catch(_){}
+                                      done.push(_n+' campagnes'); }
+    if (data.snv_cp_active)         { localStorage.setItem('snv_cp_active', JSON.stringify(data.snv_cp_active)); done.push('CP actifs'); }
+    if (data.snv_campagnes_sync_v1) { localStorage.setItem(CAMP_SYNC_KEY,   JSON.stringify(data.snv_campagnes_sync_v1)); done.push('Config sync'); }
     if (data.snv_perf_daily_v1)     { localStorage.setItem(CAMP_PERF_KEY,   JSON.stringify(data.snv_perf_daily_v1)); done.push('Perf daily'); }
     if (data.snv_finance_v1)        { localStorage.setItem('snv_finance_v1', JSON.stringify(data.snv_finance_v1)); done.push('Finance'); }
     renderDash(); renderSynthBar(); updateHistBadge();
     try { if (typeof renderContrat === 'function') renderContrat(); } catch(_) {}
+    try { if (typeof renderCampagnes === 'function') renderCampagnes(); } catch(_) {}
     const s = document.getElementById('localBackupStatus');
     if (s) s.textContent = '✅ Restauré : ' + done.join(', ');
     alert('✅ Restauration OK : ' + done.join(', '));
@@ -5526,6 +5580,15 @@ async function crmBackupCheckOnLoad() {
     const data  = JSON.parse(await file.text());
     const bDays = Object.keys(data.snv_history_v1 || {}).length;
     const lDays = Object.keys(getRaw()).length;
+    // Compte des campagnes : la perte peut toucher les campagnes sans toucher l'historique
+    const _cnt = function(st){ let n=0; try{ Object.keys(st||{}).forEach(function(k){ n+=(st[k]||[]).length; }); }catch(_){} return n; };
+    const bCamp = _cnt(data.snv_campagnes_v1);
+    const lCamp = _cnt((function(){ try{ return JSON.parse(localStorage.getItem(CAMP_KEY)||'null'); }catch(_){ return null; } })());
+    if (bCamp > lCamp) {
+      if (confirm('⚠️ La sauvegarde locale contient ' + bCamp + ' campagnes, le CRM n\'en a que ' + lCamp + '.\n\nRestaurer depuis la sauvegarde ?')) {
+        await _crmBackupApply(file); return;
+      }
+    }
     const bDates = Object.keys(data.snv_history_v1||{}).sort();
     const lDates = Object.keys(getRaw()).sort();
     const bLast  = bDates[bDates.length-1] || '—';
@@ -5538,10 +5601,468 @@ async function crmBackupCheckOnLoad() {
   } catch(e) { _crmUpdateBackupBadge('⚠️ ' + e.message, false); }
 }
 
+
+// ═══════════════════════════════════════════════
+// SNV_METRICS — Dictionnaire partagé des métriques
+// ═══════════════════════════════════════════════
+const SNV_METRICS = {
+  txFacturation: {
+    label: 'Taux de facturation',
+    desc: 'paying ÷ active × 100. Fraction des abonnés actifs qui génèrent du revenu.',
+    unite: '%',
+    caveat: 'Ne s\'applique qu\'aux données organiques. Les données PRELOAD agrégées n\'ont pas de champ paying OCI.',
+    fn: function(paying, active) { return active > 0 ? paying / active * 100 : null; }
+  },
+  arpu: {
+    label: 'ARPU organique (rev ÷ actifs)',
+    desc: 'Revenu organic ÷ actifs. En XAF par jour.',
+    unite: 'XAF/j',
+    fn: function(rev, active) { return active > 0 ? rev / active : null; }
+  },
+  arpuBundle: {
+    label: 'ARPU bundle (revQS ÷ subs)',
+    desc: 'revQS ÷ subs bundle. Revenu bundle par abonné canal, en XAF/j.',
+    unite: 'XAF/j',
+    fn: function(revQS, subs) { return subs > 0 ? revQS / subs : null; }
+  },
+  croissanceNette: {
+    label: 'Croissance nette',
+    desc: 'newSubscribers − unsubscribers sur la période. Flux cumulé, pas une variation de stock.',
+    caveat: 'Un même abonné qui se désabonne et se réabonne compte deux fois dans chaque sens. Ne pas confondre avec la variation du champ active_users.',
+    unite: 'abonnés',
+    fn: function(newS, unsub) { return newS - unsub; }
+  },
+  tendanceRev: {
+    label: 'Tendance revenu',
+    desc: 'Variation % du revenu entre deux périodes comparables.',
+    unite: '%',
+    fn: function(cur, prev) { return prev > 0 ? Math.round((cur - prev) / prev * 100) : null; }
+  },
+  cv: {
+    label: 'Coefficient de variation',
+    desc: 'Écart-type ÷ moyenne sur la série temporelle des abonnés. CV < 0.15 = stable, 0.15–0.40 = variable, > 0.40 = instable.',
+    unite: '',
+    fn: function(vals) {
+      var n = vals.length;
+      if (n < 2) return null;
+      var mean = vals.reduce(function(a,b){return a+b;},0) / n;
+      if (mean === 0) return null;
+      var variance = vals.reduce(function(s,v){return s+(v-mean)*(v-mean);},0) / (n-1);
+      return Math.sqrt(variance) / mean;
+    }
+  }
+};
+function snvTxFact(paying, active) { return SNV_METRICS.txFacturation.fn(paying, active); }
+function snvArpu(rev, active)       { return SNV_METRICS.arpu.fn(rev, active); }
+function snvArpuBundle(revQS, subs){ return SNV_METRICS.arpuBundle.fn(revQS, subs); }
+function snvCroissNette(newS, unsub){ return SNV_METRICS.croissanceNette.fn(newS, unsub); }
+function snvTendance(cur, prev)     { return SNV_METRICS.tendanceRev.fn(cur, prev); }
+function snvCV(vals)                { return SNV_METRICS.cv.fn(vals); }
+
+// ═══════════════════════════════════════════════
+// B — MONITEUR SANTÉ CHAÎNES
+// ═══════════════════════════════════════════════
+function renderSante() {
+  var h = getH();
+  var allDates = Object.keys(h).sort();
+  var emptyEl = document.getElementById('santeEmpty');
+  var mainEl  = document.getElementById('santeMain');
+  if (allDates.length < 2) {
+    if (emptyEl) emptyEl.style.display = 'block';
+    if (mainEl)  mainEl.style.display  = 'none';
+    return;
+  }
+  if (emptyEl) emptyEl.style.display = 'none';
+  if (mainEl)  mainEl.style.display  = 'block';
+
+  var period  = parseInt(((document.getElementById('santePeriod'))||{value:14}).value) || 14;
+  var opFilt  = ((document.getElementById('santeOp'))||{value:'all'}).value;
+  var sortBy  = ((document.getElementById('santeSort'))||{value:'actifs'}).value;
+  var recentDates = allDates.slice(-period);
+  var prevDates   = allDates.slice(-(period * 2), -period);
+
+  var chans = CH_ALL.filter(function(ch) {
+    return opFilt === 'all' || ch.op === opFilt;
+  });
+
+  var results = chans.map(function(ch) {
+    var cur  = _santeChMetrics(ch, recentDates, h);
+    var prev = _santeChMetrics(ch, prevDates, h);
+    var trendActifs = prev.avgActifs > 0 ? Math.round((cur.avgActifs - prev.avgActifs) / prev.avgActifs * 100) : 0;
+    var trendRev    = prev.totalRev > 0 ? Math.round((cur.totalRev - prev.totalRev) / prev.totalRev * 100) : 0;
+    return { ch:ch, avgActifs:cur.avgActifs, totalRev:cur.totalRev, arpu:cur.arpu,
+             txFact:cur.txFact, cv:cur.cv, trendActifs:trendActifs, trendRev:trendRev, days:cur.days };
+  });
+
+  var maxActifs = results.reduce(function(m,r){return Math.max(m,r.avgActifs);},1);
+  results.forEach(function(r) {
+    var sa = Math.round(r.avgActifs / maxActifs * 40);
+    var st = Math.min(20, Math.max(0, 10 + r.trendActifs * 0.2));
+    var ss = r.cv !== null ? Math.round((1 - Math.min(r.cv,1)) * 20) : 10;
+    var sa2 = r.arpu > 0 ? Math.min(20, Math.round(r.arpu / 50)) : 0;
+    r.score = Math.max(0, Math.min(100, sa + sa2 + Math.round(st) + ss));
+    r.billingBadge = (function(){
+      if (r.txFact === null) return '<span style="color:#cbd5e1;font-size:10px">—</span>';
+      var c = r.txFact >= 5 ? '#22c55e' : r.txFact >= 2 ? '#f59e0b' : '#ef4444';
+      return '<span style="padding:1px 6px;border-radius:10px;background:'+c+'22;color:'+c+';font-weight:700;font-size:10px">'+r.txFact.toFixed(1)+'%</span>';
+    })();
+  });
+
+  results.sort(function(a,b){
+    if (sortBy==='score')   return b.score-a.score;
+    if (sortBy==='billing') return (b.txFact||-1)-(a.txFact||-1);
+    if (sortBy==='arpu')    return b.arpu-a.arpu;
+    if (sortBy==='trend')   return b.trendActifs-a.trendActifs;
+    return b.avgActifs-a.avgActifs;
+  });
+
+  // Anomalies
+  var anomalies = results.filter(function(r){
+    return (r.txFact!==null && r.txFact<2 && r.avgActifs>5000) ||
+           (r.trendActifs>100 && r.days>5) ||
+           (r.trendActifs<-50 && r.days>5) ||
+           (r.cv!==null && r.cv>0.6 && r.avgActifs>1000);
+  });
+  var anomEl = document.getElementById('santeAnomalies');
+  var alertBadge = document.getElementById('santeAlertBadge');
+  if (anomalies.length > 0) {
+    if (alertBadge){alertBadge.style.display='inline';alertBadge.textContent=anomalies.length+' anomalie'+(anomalies.length>1?'s':'');}
+    var ahtml='<div style="background:#fef3c7;border:1px solid #fde68a;border-radius:8px;padding:12px 14px;margin-bottom:4px">';
+    ahtml+='<div style="font-size:11px;font-weight:700;color:#b45309;margin-bottom:8px">⚠️ Anomalies détectées</div>';
+    ahtml+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+    anomalies.forEach(function(r){
+      var why=[];
+      if(r.txFact!==null&&r.txFact<2&&r.avgActifs>5000) why.push(Math.round(r.avgActifs).toLocaleString('fr-FR')+' actifs — billing '+r.txFact.toFixed(1)+'% seulement');
+      if(r.trendActifs>100) why.push('Croissance +'+r.trendActifs+'% vs période préc.');
+      if(r.trendActifs<-50) why.push('Chute '+r.trendActifs+'% vs période préc.');
+      if(r.cv!==null&&r.cv>0.6&&r.avgActifs>1000) why.push('Très instable CV='+r.cv.toFixed(2));
+      ahtml+='<div style="background:#fffbeb;border:1px solid #fde68a;border-radius:6px;padding:6px 10px;font-size:11px">';
+      ahtml+='<span style="font-weight:700;color:'+r.ch.color+'">'+r.ch.label+'</span> <span style="color:#64748b;font-size:9px;text-transform:uppercase">'+r.ch.opLabel+'</span><br>';
+      ahtml+='<span style="color:#78716c">'+why.join(' · ')+'</span></div>';
+    });
+    ahtml+='</div></div>';
+    if(anomEl) anomEl.innerHTML=ahtml;
+  } else {
+    if(alertBadge) alertBadge.style.display='none';
+    if(anomEl) anomEl.innerHTML='';
+  }
+
+  // Table
+  var fR=function(n){return Math.round(n).toLocaleString('fr-FR');};
+  var fUSD=function(n){return '$ '+Math.round(n/600).toLocaleString('fr-FR');};
+  var tB=function(v){
+    if(v>5)  return '<span style="color:#22c55e;font-weight:700;font-size:10px">▲ +'+v+'%</span>';
+    if(v<-5) return '<span style="color:#ef4444;font-weight:700;font-size:10px">▼ '+v+'%</span>';
+    return '<span style="color:#94a3b8;font-size:10px">≈ stable</span>';
+  };
+  var sB=function(s){
+    var c=s>=70?'#22c55e':s>=40?'#f59e0b':'#ef4444';
+    return '<div style="width:30px;height:30px;border-radius:50%;background:'+c+'22;border:2px solid '+c+';display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:800;color:'+c+'">'+s+'</div>';
+  };
+  var cvB=function(cv){
+    if(cv===null) return '<span style="color:#cbd5e1">—</span>';
+    var c=cv<0.15?'#22c55e':cv<0.4?'#f59e0b':'#ef4444';
+    var l=cv<0.15?'stable':cv<0.4?'var.':'instable';
+    return '<span style="color:'+c+';font-size:10px">'+l+'</span>';
+  };
+
+  var html='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+  html+='<thead><tr style="border-bottom:2px solid #e2e8f0;text-align:left">';
+  ['#','Canal','Op.','Actifs moy.','ARPU XAF/j','Billing','Tendance','Stabilité','Rev. total','Score'].forEach(function(h2){
+    html+='<th style="padding:7px 10px;font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#94a3b8">'+h2+'</th>';
+  });
+  html+='</tr></thead><tbody>';
+  results.forEach(function(r,idx){
+    var bgRow = (r.txFact!==null&&r.txFact<2&&r.avgActifs>5000)?'background:#fffbeb;':'';
+    html+='<tr style="border-bottom:1px solid #f1f5f9;'+bgRow+'">';
+    html+='<td style="padding:8px 10px;color:#94a3b8;font-weight:700">'+(idx+1)+'</td>';
+    html+='<td style="padding:8px 10px"><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:'+r.ch.color+';margin-right:6px"></span><strong style="color:#0f172a">'+r.ch.label+'</strong> <span style="font-size:9px;color:#94a3b8">'+(r.ch.type==='bundle'?'Bundle':'Org.')+'</span></td>';
+    html+='<td style="padding:8px 10px"><span style="font-size:10px;font-weight:700;color:'+(r.ch.op==='mtn'?'#f59e0b':'#fb923c')+'">'+r.ch.opLabel+'</span></td>';
+    html+='<td style="padding:8px 10px;font-weight:600;color:#0f172a">'+fR(r.avgActifs)+(r.days<period/2?' <span style="color:#f59e0b;font-size:9px" title="Données partielles ('+r.days+' j)">⚠</span>':'')+'</td>';
+    html+='<td style="padding:8px 10px;color:#64748b">'+(r.arpu>0?fR(r.arpu):'—')+'</td>';
+    html+='<td style="padding:8px 10px">'+r.billingBadge+'</td>';
+    html+='<td style="padding:8px 10px">'+tB(r.trendActifs)+'</td>';
+    html+='<td style="padding:8px 10px">'+cvB(r.cv)+'</td>';
+    html+='<td style="padding:8px 10px;color:#64748b">'+fUSD(r.totalRev)+'</td>';
+    html+='<td style="padding:8px 10px">'+sB(r.score)+'</td>';
+    html+='</tr>';
+  });
+  html+='</tbody></table></div>';
+  var contentEl=document.getElementById('santeContent');
+  if(contentEl) contentEl.innerHTML=html;
+}
+
+function _santeChMetrics(ch, dates, h) {
+  var actifsList=[], revList=[], payingList=[], daysWithData=0;
+  dates.forEach(function(d){
+    if(!h[d]) return;
+    if(ch.type==='bundle'){
+      var bun=h[d].kpi&&h[d].kpi[ch.op]&&h[d].kpi[ch.op].bun;
+      if(!bun) return;
+      var cs=bun[ch.key]||0, ts=bun.subs||1, rev=(cs/ts)*(bun.revQS||0);
+      actifsList.push(cs); revList.push(rev); daysWithData++;
+    } else {
+      if(typeof CP_EXT_DATA==='undefined') return;
+      var cpName=CP_ORG_MAP[ch.key];
+      var cpDay=cpName&&CP_EXT_DATA[cpName]&&CP_EXT_DATA[cpName].organic&&CP_EXT_DATA[cpName].organic[d];
+      if(!cpDay) return;
+      actifsList.push(cpDay[0]||0); revList.push(cpDay[1]||0); payingList.push(cpDay[0]||0); daysWithData++;
+    }
+  });
+  var n=actifsList.length;
+  var avgActifs=n?actifsList.reduce(function(a,b){return a+b;},0)/n:0;
+  var totalRev=revList.reduce(function(a,b){return a+b;},0);
+  var arpu=avgActifs>0&&n>0?totalRev/(avgActifs*n):0;
+  var cv=snvCV(actifsList);
+  var txFact=null;
+  if(ch.type==='organic'&&n>0&&avgActifs>0){
+    var avgPaying=payingList.reduce(function(a,b){return a+b;},0)/n;
+    txFact=snvTxFact(avgPaying,avgActifs);
+  }
+  return {avgActifs:Math.round(avgActifs),totalRev:Math.round(totalRev),arpu:Math.round(arpu),txFact:txFact,cv:cv,days:daysWithData};
+}
+
+// ═══════════════════════════════════════════════
+// C — SAUVEGARDES VERSIONNÉES
+// ═══════════════════════════════════════════════
+var _SNAP_MAX = 10;
+
+async function crmSnapshotPush(payload) {
+  try {
+    var db = await auOpenDB();
+    var snap = { ts:payload.ts, days:Object.keys(payload.snv_history_v1||{}).length, payload:payload };
+    await new Promise(function(res,rej){
+      var tx=db.transaction('snapshots','readwrite');
+      tx.objectStore('snapshots').put(snap);
+      tx.oncomplete=res; tx.onerror=function(){rej(tx.error);};
+    });
+    await new Promise(function(res,rej){
+      var tx=db.transaction('snapshots','readwrite');
+      var store=tx.objectStore('snapshots');
+      var req=store.openCursor(null,'prev');
+      var count=0;
+      req.onsuccess=function(e){
+        var cursor=e.target.result;
+        if(!cursor){res();return;}
+        count++;
+        if(count>_SNAP_MAX){cursor.delete();cursor.continue();}
+        else cursor.continue();
+      };
+      req.onerror=function(){rej(req.error);};
+    });
+  } catch(e){console.warn('crmSnapshotPush:',e);}
+}
+
+async function crmSnapshotList() {
+  try {
+    var db=await auOpenDB();
+    return await new Promise(function(res,rej){
+      var tx=db.transaction('snapshots','readonly');
+      var req=tx.objectStore('snapshots').openCursor(null,'prev');
+      var list=[];
+      req.onsuccess=function(e){var cursor=e.target.result;if(!cursor){res(list);return;}list.push({ts:cursor.value.ts,days:cursor.value.days});cursor.continue();};
+      req.onerror=function(){rej(req.error);};
+    });
+  } catch(e){console.warn('crmSnapshotList:',e);return [];}
+}
+
+async function crmSnapshotRestore(ts) {
+  if(!confirm('Restaurer la version du '+new Date(ts).toLocaleString('fr-FR')+'?\n\nCela écrasera toutes les données actuelles.')) return;
+  try {
+    var db=await auOpenDB();
+    var snap=await new Promise(function(res,rej){
+      var tx=db.transaction('snapshots','readonly');
+      var req=tx.objectStore('snapshots').get(ts);
+      req.onsuccess=function(){res(req.result);}; req.onerror=function(){rej(req.error);};
+    });
+    if(!snap||!snap.payload){alert('Version introuvable.');return;}
+    await _crmBackupApply(new Blob([JSON.stringify(snap.payload)],{type:'application/json'}));
+    renderVersionedBackups(false);
+  } catch(e){alert('Erreur : '+e.message);}
+}
+
+async function crmSnapshotDelete(ts) {
+  if(!confirm('Supprimer cette version ? Action irréversible.')) return;
+  try {
+    var db=await auOpenDB();
+    await new Promise(function(res,rej){
+      var tx=db.transaction('snapshots','readwrite');
+      tx.objectStore('snapshots').delete(ts);
+      tx.oncomplete=res; tx.onerror=function(){rej(tx.error);};
+    });
+    renderVersionedBackups(false);
+  } catch(e){alert('Erreur : '+e.message);}
+}
+
+async function renderVersionedBackups(toggle) {
+  var panel=document.getElementById('versionedBackupsPanel');
+  var listEl=document.getElementById('versionedBackupsList');
+  if(!panel||!listEl) return;
+  if(toggle) panel.style.display=panel.style.display==='none'?'block':'none';
+  if(panel.style.display==='none') return;
+  listEl.innerHTML='<div style="color:#94a3b8">Chargement...</div>';
+  var snaps=await crmSnapshotList();
+  if(!snaps.length){
+    listEl.innerHTML='<div style="color:#94a3b8;font-size:11px">Aucune version. Les versions s\'accumulent automatiquement à chaque sauvegarde locale.</div>';
+    return;
+  }
+  var html='<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  html+='<thead><tr style="border-bottom:1px solid #e2e8f0"><th style="text-align:left;padding:4px 8px;color:#94a3b8;font-weight:600">Date/heure</th><th style="text-align:right;padding:4px 8px;color:#94a3b8;font-weight:600">Jours</th><th></th></tr></thead><tbody>';
+  snaps.forEach(function(s,i){
+    var dt=new Date(s.ts).toLocaleString('fr-FR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    var tsEsc=s.ts.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    html+='<tr style="border-bottom:1px solid #f8fafc"><td style="padding:5px 8px;color:#334155">'+dt+(i===0?' <span style="font-size:9px;background:#e9f7f0;color:#0f9d58;border-radius:10px;padding:1px 5px;font-weight:700">actuelle</span>':'')+'</td>';
+    html+='<td style="padding:5px 8px;text-align:right;color:#64748b">'+s.days+' j</td>';
+    html+='<td style="padding:5px 8px;text-align:right;white-space:nowrap">';
+    html+='<button onclick="crmSnapshotRestore(\''+tsEsc+'\')" style="padding:2px 8px;background:#e0e7ff;color:#4f5bd5;border:none;border-radius:4px;font-size:10px;font-weight:600;cursor:pointer;margin-right:4px">↩ Restaurer</button>';
+    html+='<button onclick="crmSnapshotDelete(\''+tsEsc+'\')" style="padding:2px 6px;background:transparent;color:#ef4444;border:1px solid #fca5a5;border-radius:4px;font-size:10px;cursor:pointer">✕</button>';
+    html+='</td></tr>';
+  });
+  html+='</tbody></table><div style="margin-top:8px;color:#94a3b8;font-size:10px">'+snaps.length+' version(s) en cache local (max '+_SNAP_MAX+'). Perdues si le cache du navigateur est vidé.</div>';
+  listEl.innerHTML=html;
+}
+
+// ═══════════════════════════════════════════════
+// D — PANNEAU QUALITÉ DES DONNÉES
+// ═══════════════════════════════════════════════
+function renderQualite() {
+  var el=document.getElementById('qualiteContent');
+  if(!el) return;
+  el.innerHTML='<div style="color:#94a3b8;font-size:12px;padding:20px">Analyse en cours...</div>';
+  setTimeout(function(){_renderQualiteInner(el);},50);
+}
+
+function _renderQualiteInner(el) {
+  var h=getH(), allDates=Object.keys(h).sort(), liveDates=Object.keys(getRaw()).sort();
+  if(!allDates.length){el.innerHTML='<div class="alert alert-info">Aucune donnée disponible.</div>';return;}
+  var firstDate=allDates[0], lastDate=allDates[allDates.length-1];
+  var expected=_qualDateRange(firstDate,lastDate);
+  var missing=expected.filter(function(d){return !h[d];});
+  var preloadDates=allDates.filter(function(d){return !getRaw()[d];});
+  var liveDatesWithRows=liveDates.filter(function(d){return h[d]&&(h[d].organic||h[d].bundle);});
+
+  var chanCoverage={};
+  liveDatesWithRows.forEach(function(d){
+    var day=h[d], chans=new Set();
+    (day.organic||[]).forEach(function(r){if(r.channel_name) chans.add(r.channel_name.trim());});
+    (day.bundle||[]).forEach(function(r){if(r.channel_name) chans.add(r.channel_name.trim());});
+    chans.forEach(function(c){if(!chanCoverage[c]) chanCoverage[c]=0; chanCoverage[c]++;});
+  });
+
+  var fmtD=function(d){return d?d.slice(8)+'/'+d.slice(5,7)+'/'+d.slice(0,4):'—';};
+  var html='';
+
+  // Cards
+  html+='<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:20px">';
+  [{icon:'📅',label:'Plage totale',val:fmtD(firstDate)+' → '+fmtD(lastDate),sub:allDates.length+' jours présents',color:'#4f5bd5'},
+   {icon:'📦',label:'PRELOAD',val:preloadDates.length+' jours',sub:'Données intégrées (sept. 2025 – juin 2026)',color:'#8b5cf6'},
+   {icon:'📤',label:'Uploadés',val:liveDatesWithRows.length+' jours',sub:'Fichiers gateway téléversés',color:'#22c55e'},
+   {icon:'⚠️',label:'Jours manquants',val:missing.length,sub:missing.length===0?'Couverture continue ✓':'Gaps dans la séquence',color:missing.length===0?'#22c55e':'#ef4444'}
+  ].forEach(function(k){
+    html+='<div class="card" style="border-top:2px solid '+k.color+'"><div style="font-size:18px;margin-bottom:6px">'+k.icon+'</div>';
+    html+='<div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin-bottom:4px">'+k.label+'</div>';
+    html+='<div style="font-size:16px;font-weight:700;color:#0f172a;margin-bottom:2px">'+k.val+'</div>';
+    html+='<div style="font-size:10px;color:#94a3b8">'+k.sub+'</div></div>';
+  });
+  html+='</div>';
+
+  if(missing.length>0){
+    html+='<div style="margin-bottom:20px;padding:12px 14px;background:#fef2f2;border:1px solid #fecaca;border-radius:8px">';
+    html+='<div style="font-size:11px;font-weight:700;color:#dc2626;margin-bottom:8px">⚠️ Jours manquants ('+missing.length+')</div>';
+    html+='<div style="font-size:11px;color:#7f1d1d;line-height:1.8">'+missing.map(fmtD).join(' · ')+'</div></div>';
+  }
+
+  if(liveDatesWithRows.length>0&&Object.keys(chanCoverage).length>0){
+    var sortedChans=Object.entries(chanCoverage).sort(function(a,b){return b[1]-a[1];});
+    var intermittent=sortedChans.filter(function(e){return e[1]<liveDatesWithRows.length*0.8;});
+    html+='<div style="margin-bottom:20px">';
+    html+='<div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:12px">Canaux uploadés ('+sortedChans.length+' canaux · '+liveDatesWithRows.length+' jours)</div>';
+    html+='<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:12px">';
+    html+='<thead><tr style="border-bottom:2px solid #e2e8f0"><th style="text-align:left;padding:6px 10px;font-size:10px;color:#94a3b8;font-weight:700">Canal</th><th style="padding:6px 10px;font-size:10px;color:#94a3b8;font-weight:700">Présent</th><th style="padding:6px 10px;font-size:10px;color:#94a3b8;font-weight:700">Couverture</th><th style="padding:6px 10px;font-size:10px;color:#94a3b8;font-weight:700">Statut</th></tr></thead><tbody>';
+    sortedChans.forEach(function(e){
+      var cname=e[0],cnt=e[1];
+      var pct=liveDatesWithRows.length>0?Math.round(cnt/liveDatesWithRows.length*100):0;
+      var status,sc,bc;
+      if(pct>=80){status='✅ Stable';sc='#22c55e';bc='#dcfce7';}
+      else if(pct>=50){status='⚠️ Intermittent';sc='#f59e0b';bc='#fef3c7';}
+      else if(pct>=20){status='🟠 Rare';sc='#f97316';bc='#fff7ed';}
+      else{status='🔴 Très rare';sc='#ef4444';bc='#fef2f2';}
+      var barW=Math.round(pct*0.8);
+      var bar='<div style="display:flex;align-items:center;gap:6px"><div style="width:80px;height:6px;background:#f1f5f9;border-radius:3px"><div style="width:'+barW+'px;height:6px;background:'+sc+';border-radius:3px"></div></div><span style="color:#64748b;font-size:11px">'+pct+'%</span></div>';
+      html+='<tr style="border-bottom:1px solid #f8fafc"><td style="padding:6px 10px;color:#0f172a;font-weight:500">'+cname+'</td><td style="padding:6px 10px;color:#64748b">'+cnt+'/'+liveDatesWithRows.length+'</td><td style="padding:6px 10px">'+bar+'</td><td style="padding:6px 10px"><span style="font-size:10px;background:'+bc+';color:'+sc+';padding:2px 8px;border-radius:10px;font-weight:700">'+status+'</span></td></tr>';
+    });
+    html+='</tbody></table></div></div>';
+    if(intermittent.length>0){
+      html+='<div style="padding:10px 14px;background:#fff7ed;border:1px solid #fed7aa;border-radius:8px;margin-bottom:16px;font-size:11px">';
+      html+='<div style="font-weight:700;color:#c2410c;margin-bottom:6px">🟠 '+intermittent.length+' canal(aux) avec couverture < 80%</div>';
+      html+='<div style="color:#78350f">Ces canaux n\'apparaissent pas dans tous les fichiers uploadés. Les métriques les concernant peuvent être biaisées sur les périodes où ils sont absents.</div></div>';
+    }
+  } else if(liveDatesWithRows.length===0){
+    html+='<div class="alert alert-info">Aucun fichier gateway uploadé. L\'analyse de couverture par canal nécessite des fichiers au format <code>civ_gateway_data_summary_YYYY-MM-DD.xlsx</code>.</div>';
+  }
+
+  // PRELOAD channels
+  var preloadChans=['africaFoot','didiB','nabou','lifeTV','cuisine','info7'];
+  var preloadChanLabels={africaFoot:'Africa Foot (MTN)',didiB:'Didi B (MTN)',nabou:'Nabou Fall (MTN)',lifeTV:'Life TV (OCI)',cuisine:'Cuisine (OCI)',info7:'7Info (OCI)'};
+  html+='<div style="margin-bottom:20px"><div style="font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:#94a3b8;margin-bottom:12px">Canaux bundle PRELOAD ('+preloadDates.length+' jours)</div>';
+  html+='<div style="display:flex;flex-wrap:wrap;gap:8px">';
+  preloadChans.forEach(function(k){
+    var cnt=preloadDates.filter(function(d){return h[d]&&h[d].kpi&&h[d].kpi[k==='africaFoot'||k==='didiB'||k==='nabou'?'mtn':'oci']&&h[d].kpi[k==='africaFoot'||k==='didiB'||k==='nabou'?'mtn':'oci'].bun&&h[d].kpi[k==='africaFoot'||k==='didiB'||k==='nabou'?'mtn':'oci'].bun[k]!==undefined;}).length;
+    var pct=preloadDates.length>0?Math.round(cnt/preloadDates.length*100):100;
+    html+='<div style="padding:8px 12px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;font-size:11px">';
+    html+='<div style="font-weight:600;color:#334155;margin-bottom:2px">'+preloadChanLabels[k]+'</div>';
+    html+='<div style="color:#94a3b8">'+cnt+'/'+preloadDates.length+' jours ('+pct+'%)</div></div>';
+  });
+  html+='</div></div>';
+  el.innerHTML=html;
+}
+
+function _qualDateRange(start,end){
+  var dates=[],cur=new Date(start),endD=new Date(end);
+  while(cur<=endD){dates.push(cur.toISOString().slice(0,10));cur.setDate(cur.getDate()+1);}
+  return dates;
+}
+
+
+// ── Créer un meeting depuis une tâche récurrente validée ────────────────────
+function tmCreateMeetingFromTask(tid, mk) {
+  const s = initTaskMan();
+  const md = getMonthData(s, mk);
+  const t = (md.tasks || []).find(x => x.id === tid);
+  if (!t) return;
+  const date = prompt('Date du meeting (YYYY-MM-DD) :', new Date().toISOString().slice(0,10));
+  if (!date || !/^\d{4}-\d{2}-\d{2}$/.test(date)) return;
+
+  const mType   = t.meetingType === 'call' ? 'call' : 'physique';
+  const bCat    = t.categorie === 'meeting_partenaires' ? 'meeting_partenaires' : 'suivi_telco';
+  const mid     = tmGenId();
+  if (!md.meetings) md.meetings = [];
+
+  // Points pré-remplis : tâches non terminées du même partenaire
+  const pendingPoints = (md.tasks || [])
+    .filter(t2 => t2.id !== tid && t2.partenaire === t.partenaire && t2.statut !== 'fait')
+    .slice(0, 5)
+    .map(t2 => ({ id: tmGenId(), text: '📋 ' + t2.text, taskId: t2.id }));
+  if (!pendingPoints.length) pendingPoints.push({ id: tmGenId(), text: 'Ordre du jour à compléter', taskId: null });
+
+  md.meetings.push({
+    id: mid, date: date, partenaire: t.partenaire, mType: mType,
+    bareme: [bCat], lieu: '', participants: '',
+    points: pendingPoints, refs: [], sourceTask: tid
+  });
+  t._meetingCreated = mid;
+  t.meetingId = mid;
+  setTmState(s);
+  _tmExpMtg = mid;
+  _tmSubTab = 'meetings';
+  renderContrat();
+}
+
 // ═══════════════════════════════════════════════
 // INIT
 // ═══════════════════════════════════════════════
 window.addEventListener('load', () => {
+  runCampMigrations();
   updateHistBadge(); renderDash(); renderSynthBar(); initMergedTabStyles();
   if (typeof finUpdateNavBadge === 'function') finUpdateNavBadge();
   // Restauration depuis sauvegarde locale si données manquantes
@@ -5557,8 +6078,10 @@ window.addEventListener('load', () => {
     const sb = document.getElementById('sbSyncStatus');
     if (sb) { sb.textContent = '⚙️ Configurer'; sb.style.color = '#f39c12'; }
   }
-  // Vérifier les permissions File System Access après redémarrage
-  checkFileHandlesOnLoad();
+  // Bandeau de réautorisation « Sync auto » retiré : les permissions File System Access
+  // sont révoquées à chaque redémarrage par le navigateur (règle de sécurité, non contournable).
+  // L'utilisateur téléverse ses fichiers manuellement — le rappel était du bruit.
+  // checkFileHandlesOnLoad();
 });
 
 async function checkFileHandlesOnLoad() {
@@ -5598,8 +6121,15 @@ let __auDB = null;
 async function auOpenDB() {
   if (__auDB) return __auDB;
   return new Promise((res, rej) => {
-    const r = indexedDB.open('snv_au_v1', 1);
-    r.onupgradeneeded = e => e.target.result.createObjectStore('handles');
+    const r = indexedDB.open('snv_au_v1', 2);
+    r.onupgradeneeded = e => {
+      const db = e.target.result;
+      if (!db.objectStoreNames.contains('handles')) db.createObjectStore('handles');
+      if (!db.objectStoreNames.contains('snapshots')) {
+        const ss = db.createObjectStore('snapshots', { keyPath:'ts' });
+        ss.createIndex('ts_idx','ts',{ unique:true });
+      }
+    };
     r.onsuccess = e => { __auDB = e.target.result; res(__auDB); };
     r.onerror   = () => rej(r.error);
   });
@@ -5869,6 +6399,71 @@ const TM_STATUT_LABELS = { a_faire:'À faire', en_cours:'En cours', fait:'Fait',
 const TM_STATUT_COLORS = { a_faire:'#64748b',    en_cours:'#f59e0b',  fait:'#22c55e', bloque:'#ef4444' };
 const TM_STATUT_ICONS  = { a_faire:'⭕',      en_cours:'🔄',       fait:'✅',      bloque:'🔴' };
 
+// ── Canaux StarNews CIV (aligne sur campNormCanal) ────────────────
+const TM_CANAUX = ['Life TV','7Info','Cuisine','AL Bayane','Africa Foot','Africa News','Flash Foot','Flash I-Tech','Flash Infos'];
+
+// ── Tâches récurrentes par période contractuelle (19 → 19) ───────
+// Injectées UNE SEULE FOIS par bucket, jamais dupliquées (clé `recurrentKey`).
+// Aucune injection rétroactive avant TM_RECURRENT_FROM : l'historique reste intact.
+// `dueOffset` = jours par rapport à la fin de période (négatif = avant la clôture).
+const TM_RECURRENT_FROM = '2026-08';
+const TM_RECURRENT = [
+  // ── Suivi MTN CIV ──────────────────────────────────────────────────────────
+  { key:'rec_mtg_mtn_1',    text:'Organiser la réunion physique MTN CIV — Séance 1',       partenaire:'MTN CIV',  categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-14, meetingType:'physique' },
+  { key:'rec_mtg_mtn_2',    text:'Organiser la réunion physique MTN CIV — Séance 2',       partenaire:'MTN CIV',  categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-4,  meetingType:'physique' },
+  { key:'rec_call_mtn',     text:'Planifier le call de suivi MTN CIV',                     partenaire:'MTN CIV',  categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-7,  meetingType:'call'     },
+  // ── Suivi OCI ──────────────────────────────────────────────────────────────
+  { key:'rec_mtg_oci_1',    text:'Organiser la réunion physique OCI — Séance 1',           partenaire:'OCI',      categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-14, meetingType:'physique' },
+  { key:'rec_mtg_oci_2',    text:'Organiser la réunion physique OCI — Séance 2',           partenaire:'OCI',      categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-4,  meetingType:'physique' },
+  { key:'rec_call_oci',     text:'Planifier le call de suivi OCI',                         partenaire:'OCI',      categorie:'suivi_telco',         responsable:'Mounirou', dueOffset:-7,  meetingType:'call'     },
+  // ── Partenaires content providers ──────────────────────────────────────────
+  { key:'rec_mtg_albayane', text:'Meeting partenaire AL Bayane',                           partenaire:'AL Bayane',categorie:'meeting_partenaires', responsable:'Mounirou', dueOffset:-10, meetingType:'physique' },
+  { key:'rec_mtg_7info',    text:'Meeting partenaire 7Info',                               partenaire:'7Info',    categorie:'meeting_partenaires', responsable:'Mounirou', dueOffset:-10, meetingType:'physique' },
+  { key:'rec_mtg_lifetv',   text:'Meeting partenaire Life TV',                             partenaire:'Life TV',  categorie:'meeting_partenaires', responsable:'Mounirou', dueOffset:-10, meetingType:'physique' },
+  // ── Marketing ──────────────────────────────────────────────────────────────
+  { key:'rec_plan_anim',    text:"Soumettre le plan d'animation de la période aux telcos", partenaire:'Autre',    categorie:'marketing',           responsable:'Mounirou', dueOffset:-14 }
+];
+
+// Crée les tâches récurrentes manquantes pour chaque bucket >= TM_RECURRENT_FROM.
+// Idempotent : relancé à chaque rendu sans jamais dupliquer.
+function tmSeedRecurrent(s){
+  var touched=false;
+  var tomb=s._tombstones||[];
+  Object.keys(s).forEach(function(mk){
+    if(!/^\d{4}-\d{2}$/.test(mk)) return;
+    if(mk < TM_RECURRENT_FROM) return;
+    var md=s[mk]; if(!md||typeof md!=='object') return;
+    if(!Array.isArray(md.tasks)) md.tasks=[];
+    var b;
+    try { b=_tmPeriodBounds(mk); } catch(e){ return; }
+    TM_RECURRENT.forEach(function(r){
+      var rid='r_'+r.key+'_'+mk;
+      if(tomb.includes(rid)) return; // user explicitly deleted this task
+      var exists=md.tasks.some(function(t){ return t.recurrentKey===r.key; });
+      if(exists) return;
+      var due=new Date(b.end);
+      due.setDate(due.getDate()+(r.dueOffset||0));
+      md.tasks.push({
+        id:'r_'+r.key+'_'+mk,
+        recurrentKey:r.key,
+        text:r.text,
+        partenaire:r.partenaire,
+        categorie:r.categorie,
+        responsable:r.responsable,
+        date_creation:b.start,
+        deadline:due.toISOString().slice(0,10),
+        statut:'a_faire',
+        source:'recurrent',
+        meetingId:null,
+        pointId:null,
+        meetingType:r.meetingType||null
+      });
+      touched=true;
+    });
+  });
+  return touched;
+}
+
 function tmGenId() { return Date.now().toString(36)+Math.random().toString(36).slice(2,5); }
 function tmPartner(id)   { return TM_PARTNERS.find(p=>p.id===id)    || { label:id,   color:'#64748b', icon:'' }; }
 function tmBarCat(id)    { return TM_BAREME_CATS.find(c=>c.id===id) || { label:id,   color:'#64748b', icon:'•' }; }
@@ -5998,51 +6593,13 @@ const TM_DEFAULT = {
     creator_academy_done: false,
     creator_academy_pct: 50
   },
+  // Bucket 2026-07 : volontairement vide ici.
+  // Les meetings m010/m011/m012 et les tâches t021..t031 sont définis UNE SEULE FOIS
+  // dans runTMMigrations() (source de vérité unique). Les migrations s'exécutent à chaque
+  // rendu et remplissent ce bucket, que localStorage soit vierge ou déjà peuplé.
   '2026-07': {
-    meetings: [
-      { id:'m011', date:'2026-06-30', partenaire:'MTN CIV', mType:'physique',
-        lieu:'Locaux MTN CIV, Abidjan',
-        participants:'Mounirou Sangaré (StarNews) · Massara Kouakou, Adama Koita, Guy Kamgaing, Alex Taco, Floriane Yao (MTN CIV)',
-        bareme:['marketing','product'],
-        points:[
-          { id:'pt090', text:'Planning Balance à partager pour Juillet — livré', taskId:'t027' },
-          { id:'pt091', text:'Brief de Communication à générer pour soumission interne et définir le Next step', taskId:'t028' },
-          { id:'pt092', text:'Plan d\'animation rewarding à partager avant lancement Août', taskId:'t029' },
-          { id:'pt093', text:'Faisabilité d\'intégration des chaînes SNV dans un menu USSD — délai à définir', taskId:'t030' }
-        ]
-      },
-      { id:'m010', date:'2026-06-30', partenaire:'OCI', mType:'physique',
-        lieu:'Bureaux OCI, Abidjan',
-        participants:'Mounirou Sangaré (StarNews) · Georges Hathry, Arsène Pré Kouadio, Guy Kamgaing (OCI)',
-        bareme:['suivi_telco','product','marketing'],
-        points:[
-          { id:'pt083', text:'USSD #303# → #124# — réunion interne OCI coordonnée par Georges le 06/07 pour valider le modèle technique', taskId:'t021' },
-          { id:'pt084', text:'Plan d\'animation vacances — à partager par Mounirou pour validation OCI, deadline 10/07', taskId:'t022' },
-          { id:'pt085', text:'Campagnes SMS — Georges partage le planning de campagne le 06/07', taskId:'t023' },
-          { id:'pt086', text:'Campagnes Pop Up et bannières MaxIT — visuels au 10/07, démarrage campagnes le 17/07', taskId:'t024' },
-          { id:'pt087', text:'Pastilles visuelles Bundle OCI — assets renvoyés et intégrés (fait le 05/07)', taskId:null },
-          { id:'pt088', text:'Bundle StarNews dans Promo 200% du mardi — Georges valide faisabilité, deadline 10/07', taskId:'t025' },
-          { id:'pt089', text:'Data provenance abonnés StarNews sur les 6 derniers mois — à fournir par Georges, deadline 10/07', taskId:'t026' }
-        ]
-      }
-    ],
-    tasks: [
-      { id:'t021', text:'USSD #303# → #124# — valider modèle technique en réunion interne OCI (coord. Georges)', partenaire:'OCI', categorie:'product', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-06', statut:'en_cours', source:'meeting', meetingId:'m010', pointId:'pt083' },
-      { id:'t022', text:'Préparer et partager le plan d\'animation vacances pour validation OCI', partenaire:'OCI', categorie:'marketing', responsable:'Mounirou', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt084' },
-      { id:'t023', text:'Planning campagnes SMS OCI — Georges partage le planning de campagne', partenaire:'OCI', categorie:'marketing', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-06', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt085' },
-      { id:'t024', text:'Campagnes Pop Up & bannières MaxIT — visuels au 10/07, démarrage campagnes le 17/07', partenaire:'OCI', categorie:'marketing', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m010', pointId:'pt086' },
-      { id:'t025', text:'Bundle StarNews dans Promo 200% mardi OCI — valider la faisabilité (Georges)', partenaire:'OCI', categorie:'product', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt088' },
-      { id:'t026', text:'Fournir data provenance abonnés StarNews sur les 6 derniers mois', partenaire:'OCI', categorie:'suivi_telco', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt089' },
-      { id:'t027', text:'Planning Balance à partager pour Juillet', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-01', statut:'fait', source:'meeting', meetingId:'m011', pointId:'pt090' },
-      { id:'t028', text:'Générer le brief de Com pour soumettre en interne et définir le Next step', partenaire:'MTN CIV', categorie:'marketing', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt091' },
-      { id:'t029', text:'Partager un plan d\'animation rewarding pour lancement avant Août', partenaire:'MTN CIV', categorie:'marketing', responsable:'Mounirou', date_creation:'2026-06-30', deadline:'2026-07-15', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt092' },
-      { id:'t030', text:'Statuer sur la faisabilité d\'intégrer les chaînes SNV dans un menu USSD et définir le délai', partenaire:'MTN CIV', categorie:'product', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt093' }
-    ],
-    campagnes: [],
-    createurs: [],
-    creator_academy_note: '',
-    creator_academy_done: false,
-    creator_academy_pct: 0
+    meetings: [], tasks: [], campagnes: [], createurs: [],
+    creator_academy_note: '', creator_academy_done: false, creator_academy_pct: 0
   }
 };
 
@@ -6052,6 +6609,7 @@ let _tmMonth   = null;
 let _tmSubTab  = 'vue';
 let _tmExpMtg  = null;
 let _tmEditMtg = null;
+let _tmPendingDelete = null; // meeting id awaiting delete confirm
 let _tmTaskView= 'list';
 let _tmBarOpen = null;
 let _analyseTab = 'tendances';
@@ -6083,6 +6641,9 @@ function saveTmMutation(fn) { const s=initTaskMan(); fn(s); setTmState(s); rende
 function runTMMigrations() {
   const s = initTaskMan();
   let dirty = false;
+  // Tombstones — IDs explicitly deleted by user; migrations must not re-inject them
+  if (!s._tombstones) { s._tombstones = []; dirty = true; }
+  const tomb = s._tombstones;
 
   // Garantit que le bucket 2026-07 existe (période contractuelle 19 juin → 19 juillet)
   if (!s['2026-07']) { s['2026-07'] = { meetings:[], tasks:[], campagnes:[], createurs:[], creator_academy_note:'', creator_academy_done:false, creator_academy_pct:0 }; dirty = true; }
@@ -6104,7 +6665,7 @@ function runTMMigrations() {
   }
 
   // Migration M010 — Meeting OCI 30 juin 2026 → période 19 juin–19 juil (bucket 2026-07)
-  if (!md06.meetings.find(m => m.id === 'm010')) {
+  if (!tomb.includes('m010') && !md06.meetings.find(m => m.id === 'm010')) {
     md06.meetings.push({
       id:'m010', date:'2026-06-30', partenaire:'OCI', mType:'physique',
       lieu:'Bureaux OCI, Abidjan',
@@ -6132,11 +6693,11 @@ function runTMMigrations() {
     { id:'t026', text:'Fournir data provenance abonnés StarNews sur les 6 derniers mois', partenaire:'OCI', categorie:'suivi_telco', responsable:'Georges OCI', date_creation:'2026-06-30', deadline:'2026-07-10', statut:'a_faire', source:'meeting', meetingId:'m010', pointId:'pt089' }
   ];
   newTasks.forEach(t => {
-    if (!md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
+    if (!tomb.includes(t.id) && !md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
   });
 
   // Migration M011 — Meeting MTN CIV 30 juin 2026
-  if (!md06.meetings.find(m => m.id === 'm011')) {
+  if (!tomb.includes('m011') && !md06.meetings.find(m => m.id === 'm011')) {
     md06.meetings.push({
       id:'m011', date:'2026-06-30', partenaire:'MTN CIV', mType:'physique',
       lieu:'Locaux MTN CIV, Abidjan',
@@ -6158,11 +6719,11 @@ function runTMMigrations() {
     { id:'t030', text:"Statuer sur la faisabilité d'intégrer les chaînes SNV dans un menu USSD et définir le délai", partenaire:'MTN CIV', categorie:'product', responsable:'Adama Koita', date_creation:'2026-06-30', deadline:'2026-07-17', statut:'en_cours', source:'meeting', meetingId:'m011', pointId:'pt093' }
   ];
   newTasksMTN.forEach(t => {
-    if (!md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
+    if (!tomb.includes(t.id) && !md06.tasks.find(x => x.id === t.id)) { md06.tasks.push(t); dirty = true; }
   });
 
   // ── Migration M012 — Meeting Life TV 7 juillet 2026 → bucket 2026-07 ──────────
-  if (!md06.meetings.find(m => m.id === 'm012')) {
+  if (!tomb.includes('m012') && !md06.meetings.find(m => m.id === 'm012')) {
     md06.meetings.push({
       id:'m012', date:'2026-07-07', partenaire:'Life TV', mType:'physique',
       lieu:'',
@@ -6175,7 +6736,7 @@ function runTMMigrations() {
     dirty = true;
   }
   const t031 = { id:'t031', text:'[Life TV] Suites RDV contractuel rémunération — actions à compléter', partenaire:'Life TV', categorie:'meeting_partenaires', responsable:'Mounirou', date_creation:'2026-07-07', deadline:'2026-07-31', statut:'a_faire', source:'meeting', meetingId:'m012', pointId:'pt094' };
-  if (!md06.tasks.find(x => x.id === 't031')) { md06.tasks.push(t031); dirty = true; }
+  if (!tomb.includes('t031') && !md06.tasks.find(x => x.id === 't031')) { md06.tasks.push(t031); dirty = true; }
 
   // ── Bucket 2026-08 (période 19 juil → 19 août) ──────────────────────────────
   if (!s['2026-08']) {
@@ -6187,7 +6748,7 @@ function runTMMigrations() {
   if (!md08.tasks)    { md08.tasks    = []; dirty = true; }
 
   // Migration M013 — Meeting OCI Technocentre (post-19 juil)
-  if (!md08.meetings.find(m => m.id === 'm013')) {
+  if (!tomb.includes('m013') && !md08.meetings.find(m => m.id === 'm013')) {
     md08.meetings.push({
       id:'m013', date:'2026-07-21', partenaire:'OCI / Technocentre', mType:'physique',
       lieu:'',
@@ -6201,7 +6762,7 @@ function runTMMigrations() {
   }
 
   // Migration M014 — Meeting OCI (post-19 juil)
-  if (!md08.meetings.find(m => m.id === 'm014')) {
+  if (!tomb.includes('m014') && !md08.meetings.find(m => m.id === 'm014')) {
     md08.meetings.push({
       id:'m014', date:'2026-07-22', partenaire:'OCI', mType:'physique',
       lieu:'',
@@ -6215,7 +6776,7 @@ function runTMMigrations() {
   }
 
   // Migration M015 — Meeting MTN CIV (post-19 juil)
-  if (!md08.meetings.find(m => m.id === 'm015')) {
+  if (!tomb.includes('m015') && !md08.meetings.find(m => m.id === 'm015')) {
     md08.meetings.push({
       id:'m015', date:'2026-07-23', partenaire:'MTN CIV', mType:'physique',
       lieu:'',
@@ -6246,6 +6807,9 @@ function runTMMigrations() {
     { id:'ca7_3', text:'Retour MTN avec stats et définition des next steps', done:false }
   ]);
 
+  // ── Tâches récurrentes de période (additif, idempotent) ───────────────────
+  if (tmSeedRecurrent(s)) dirty = true;
+
   if (dirty) setTmState(s);
 }
 function getMonthData(s,mk) {
@@ -6264,58 +6828,206 @@ function _tmPeriodBounds(mk){
   return { start:f(start), end:f(end) };
 }
 
-function calcBareme(md, mk) {
-  const mtgs=md.meetings||[], tasks=md.tasks||[];
-  const tPhys=mtgs.filter(m=>m.bareme.includes('suivi_telco')&&m.mType==='physique');
-  const tCall=mtgs.filter(m=>m.bareme.includes('suivi_telco')&&m.mType==='call');
-  const pMtgs=mtgs.filter(m=>m.bareme.includes('meeting_partenaires'));
-  const prMtgs=mtgs.filter(m=>m.bareme.includes('product'));
-
-  // ── PRODUIT — obligation de moyens : diligence / relance, pas clôture ──
-  // Un point produit est "à jour" s'il est clos (fait) OU relancé dans la période.
-  // Un point qui traîne côté partenaire ne pénalise pas tant qu'il est relancé.
-  const pb=_tmPeriodBounds(mk);
-  const prTasks=tasks.filter(t=>t.categorie==='product');
-  const isAjour=t=> t.statut==='fait'
-                 || (t.derniere_relance && t.derniere_relance>=pb.start && t.derniere_relance<=pb.end);
-  const prAjour=prTasks.filter(isAjour).length;
-  const prPct = prTasks.length ? Math.round(prAjour/prTasks.length*100)
-              : (prMtgs.length ? 100 : 0);
-  const prDone = prPct>=100 && (prTasks.length>0 || prMtgs.length>0);
-  const prNote = prTasks.length
-    ? `${prAjour}/${prTasks.length} point(s) à jour de diligence · ${prMtgs.length} meeting(s)`
-    : (prMtgs.length ? `${prMtgs.length} meeting(s) produit · aucune diligence ouverte` : 'Aucun élément produit');
-
-  // ── CREATOR ACADEMY — obligation de résultat par jalons mensuels ──
-  const caM=md.creator_academy_milestones;
-  let caPct, caDone, caNote;
-  if(Array.isArray(caM) && caM.length){
-    const d=caM.filter(x=>x.done).length;
-    caPct=Math.round(d/caM.length*100);
-    caDone=d===caM.length;
-    caNote=`${d}/${caM.length} jalon(s) atteint(s)`;
-  } else {
-    caPct=md.creator_academy_pct||0; caDone=md.creator_academy_done||false; caNote=md.creator_academy_note||'Non renseigné';
+// ── Barème déclaratif ──────────────────────────────────────────────────────────
+// Source de vérité unique pour les règles de notation.
+// Modifier ici change à la fois le calcul ET l'affichage de la règle.
+//
+// type 'meetings' : compte les meetings dont bareme.includes(axe) et mType match
+//   exige = [{mType, min, poids}]  — poids = pts accordés si condition remplie (sur 100)
+//
+// type 'tasks_result' : obligation de résultat — tâches owner='moi' clôturées (statut='fait')
+//   pct = n_faites/n_totales * 100
+//
+// type 'tasks_diligence' : obligation de moyens — tâches owner='partenaire'
+//   "à jour" = fait OU relancé dans la période
+//
+// type 'milestones' : jalons booléens sur md.creator_academy_milestones
+//
+// type 'campagnes' : compte les campagnes barème par opérateur via campBaremeCount()
+//   exige = [{op, min, poids}]
+//
+// type 'createurs' : compte md.createurs
+//   exige = [{min, poids}]
+const TM_BAREME_RULES = [
+  {
+    id: 'suivi_telco', label: 'Suivi Telco', icon: '📡', type: 'meetings',
+    exige: [
+      { mType: 'physique', min: 2, poids: 50, label: '2 réunions physiques opérateurs' },
+      { mType: 'call',     min: 1, poids: 50, label: '1 call opérateur' }
+    ]
+  },
+  {
+    id: 'meeting_partenaires', label: 'Partenaires', icon: '🤝', type: 'meetings',
+    exige: [
+      { mType: null, min: 1, poids: 100, label: '1 meeting partenaire contenu' }
+    ]
+  },
+  {
+    id: 'product', label: 'Produit', icon: '⚙️', type: 'tasks_mixed',
+    // moi → résultat, partenaire → diligence. Règle : tout à jour.
+    exige: [{ label: 'Toutes les tâches produit à jour (faites ou relancées dans la période)' }]
+  },
+  {
+    id: 'creator_academy', label: 'Creator Academy', icon: '🎓', type: 'milestones',
+    exige: [{ label: 'Tous les jalons mensuels atteints' }]
+  },
+  {
+    id: 'marketing', label: 'Marketing', icon: '📣', type: 'campagnes',
+    exige: [
+      { op: 'MTN', min: 3, poids: 50, label: '3 campagnes MTN barème' },
+      { op: 'OCI', min: 3, poids: 50, label: '3 campagnes OCI barème' }
+    ]
+  },
+  {
+    id: 'createurs', label: 'Créateurs signés', icon: '🎬', type: 'createurs',
+    exige: [{ min: 2, poids: 100, label: '2 créateurs signés' }]
   }
+];
 
-  return {
-    suivi_telco:         { label:'Suivi Telco',      icon:'📡', pct:Math.min(Math.round(tPhys.length/2*50+Math.min(tCall.length,1)*50),100), done:tPhys.length>=2&&tCall.length>=1, note:`${tPhys.length} physique(s) · ${tCall.length} call(s)` },
-    meeting_partenaires: { label:'Partenaires',      icon:'🤝', pct:pMtgs.length>=1?100:0, done:pMtgs.length>=1, note:pMtgs.length?pMtgs.map(m=>m.partenaire).join(', '):'Aucun' },
-    product:             { label:'Produit',            icon:'⚙️', pct:prPct, done:prDone, note:prNote },
-    creator_academy:     { label:'Creator Academy',  icon:'🎓', pct:caPct, done:caDone, note:caNote },
-    marketing:           { label:'Marketing',          icon:'📣', pct:(()=>{ const {mtn,oci}=campBaremeCount(mk); const t=mtn+oci; return Math.min(Math.round(t/6*100),100); })(), done:(()=>{ const {mtn,oci}=campBaremeCount(mk); return mtn>=3&&oci>=3; })(), note:(()=>{ const {mtn,oci}=campBaremeCount(mk); return `MTN ${mtn}/3 · OCI ${oci}/3`; })() },
-    createurs:           { label:'Créateurs signés',   icon:'🎬', pct:Math.min(Math.round((md.createurs||[]).length/2*100),100), done:(md.createurs||[]).length>=2, note:`${(md.createurs||[]).length}/2 créateurs` }
-  };
+// Retourne un texte lisible de la règle d'un axe (affiché sous le score)
+function tmBaremeRuleText(axe) {
+  const r = TM_BAREME_RULES.find(x => x.id === axe);
+  if (!r) return '';
+  return r.exige.map(function(e) { return e.label; }).join(' · ');
+}
+
+function calcBareme(md, mk) {
+  const mtgs = md.meetings || [], tasks = md.tasks || [];
+  const pb = _tmPeriodBounds(mk);
+  const result = {};
+
+  TM_BAREME_RULES.forEach(function(rule) {
+    let pct = 0, done = false, note = '';
+
+    if (rule.type === 'meetings') {
+      var earned = 0;
+      var parts = [];
+      rule.exige.forEach(function(e) {
+        var matching = mtgs.filter(function(m) {
+          return m.bareme.includes(rule.id) && (e.mType === null || m.mType === e.mType);
+        });
+        var n = matching.length;
+        var contrib = Math.min(n, e.min) / e.min * e.poids;
+        earned += contrib;
+        parts.push(n + (e.mType ? ' ' + (e.mType === 'physique' ? 'physique(s)' : 'call(s)') : ' meeting(s)') + ' / ' + e.min + ' requis');
+      });
+      pct = Math.min(Math.round(earned), 100);
+      done = pct >= 100;
+      note = parts.join(' · ');
+    }
+
+    else if (rule.type === 'tasks_mixed') {
+      // Produit : owner='moi' → résultat ; owner='partenaire' → diligence ; défaut → diligence
+      var prTasks = tasks.filter(function(t) { return t.categorie === 'product'; });
+      var isAjour = function(t) {
+        return t.statut === 'fait' ||
+          (t.owner !== 'moi' && t.derniere_relance && t.derniere_relance >= pb.start && t.derniere_relance <= pb.end);
+      };
+      var nAjour = prTasks.filter(isAjour).length;
+      var nRes = prTasks.filter(function(t) { return t.owner === 'moi'; }).length;
+      var nDil = prTasks.length - nRes;
+      pct = prTasks.length ? Math.round(nAjour / prTasks.length * 100)
+          : (mtgs.filter(function(m){ return m.bareme.includes('product'); }).length ? 100 : 0);
+      done = pct >= 100 && (prTasks.length > 0 || mtgs.filter(function(m){ return m.bareme.includes('product'); }).length > 0);
+      note = prTasks.length
+        ? nAjour + '/' + prTasks.length + ' à jour · ' + nRes + ' résultat · ' + nDil + ' diligence'
+        : 'Aucune tâche produit';
+    }
+
+    else if (rule.type === 'milestones') {
+      var caM = md.creator_academy_milestones;
+      if (Array.isArray(caM) && caM.length) {
+        var nd = caM.filter(function(x) { return x.done; }).length;
+        pct = Math.round(nd / caM.length * 100);
+        done = nd === caM.length;
+        note = nd + '/' + caM.length + ' jalon(s) atteint(s)';
+      } else {
+        pct = md.creator_academy_pct || 0;
+        done = md.creator_academy_done || false;
+        note = md.creator_academy_note || 'Non renseigné';
+      }
+    }
+
+    else if (rule.type === 'campagnes') {
+      var cc = campBaremeCount(mk);
+      var earned2 = 0;
+      var parts2 = [];
+      rule.exige.forEach(function(e) {
+        var n = e.op === 'MTN' ? cc.mtn : cc.oci;
+        earned2 += Math.min(n, e.min) / e.min * e.poids;
+        parts2.push(e.op + ' ' + n + '/' + e.min);
+      });
+      pct = Math.min(Math.round(earned2), 100);
+      done = rule.exige.every(function(e) { return (e.op === 'MTN' ? cc.mtn : cc.oci) >= e.min; });
+      note = parts2.join(' · ');
+    }
+
+    else if (rule.type === 'createurs') {
+      var nc = (md.createurs || []).length;
+      var e0 = rule.exige[0];
+      pct = Math.min(Math.round(nc / e0.min * e0.poids), 100);
+      done = nc >= e0.min;
+      note = nc + '/' + e0.min + ' créateurs';
+    }
+
+    result[rule.id] = { label: rule.label, icon: rule.icon, pct: pct, done: done, note: note,
+                        ruleText: rule.exige.map(function(e){ return e.label; }).join(' · ') };
+  });
+
+  return result;
 }
 
 // ── Main render ───────────────────────────────────────────────────
+// ── Clôture de période ────────────────────────────────────────────────────────
+// Une période clôturée : score figé, meetings/tâches en lecture seule,
+// exclue des migrations futures. Stocké dans md.cloture = { date, score }
+
+function tmCloturePeriode(mk) {
+  const s = initTaskMan();
+  const md = getMonthData(s, mk);
+  if (md.cloture) { alert('Cette période est déjà clôturée.'); return; }
+  const bar = calcBareme(md, mk);
+  const doneN = Object.values(bar).filter(function(b){ return b.done; }).length;
+  const scoreText = doneN + '/6 axes · ' + Object.entries(bar).map(function(e){ return e[1].icon + ' ' + e[1].pct + '%'; }).join(' ');
+  const ok = confirm(
+    '⚠️ Clôturer la période ' + mk + ' ?\n\n' +
+    'Score figé : ' + scoreText + '\n\n' +
+    'Les meetings et tâches passeront en lecture seule.\n' +
+    'Cette action est irréversible.'
+  );
+  if (!ok) return;
+  md.cloture = {
+    date: new Date().toISOString().slice(0, 10),
+    doneN: doneN,
+    scoreText: scoreText,
+    bar: bar
+  };
+  setTmState(s);
+  renderContrat();
+}
+
+function tmDecloturePeriode(mk) {
+  if (!confirm('Réouvrir la période ' + mk + ' ? (action de correction)')) return;
+  const s = initTaskMan();
+  const md = getMonthData(s, mk);
+  delete md.cloture;
+  setTmState(s);
+  renderContrat();
+}
+
+function tmPeriodeClosed(mk) {
+  const s = initTaskMan();
+  const md = getMonthData(s, mk);
+  return !!(md && md.cloture);
+}
+
 function renderContrat() {
   const el=document.getElementById('contratMain'); if(!el) return;
   runTMMigrations();
   const s=initTaskMan();
-  if(!_tmMonth||!s[_tmMonth]){ const keys=Object.keys(s).sort(); _tmMonth=keys[keys.length-1]||'2026-06'; }
+  if(!_tmMonth||!s[_tmMonth]||!/^\d{4}-\d{2}$/.test(_tmMonth)){ const keys=Object.keys(s).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort(); _tmMonth=keys[keys.length-1]||'2026-06'; }
   const mk=_tmMonth, md=getMonthData(s,mk), bar=calcBareme(md, mk);
-  const allMk=Object.keys(s).sort(), prev=allMk[allMk.indexOf(mk)-1], next=allMk[allMk.indexOf(mk)+1];
+  const allMk=Object.keys(s).filter(k=>/^\d{4}-\d{2}$/.test(k)).sort(), prev=allMk[allMk.indexOf(mk)-1], next=allMk[allMk.indexOf(mk)+1];
   const mLabel=new Date(mk+'-15').toLocaleString('fr-FR',{month:'long',year:'numeric'});
   const doneN=Object.values(bar).filter(b=>b.done).length;
   const gCol=doneN>=5?'#22c55e':doneN>=3?'#f59e0b':'#ef4444';
@@ -6324,18 +7036,28 @@ function renderContrat() {
   // Header
   `<div style="margin-bottom:14px">` +
   `<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">` +
-    `<div style="display:flex;align-items:center;gap:10px">` +
-      (prev?`<button onclick="tmSetMonth('${prev}')" style="background:#fafbfc;border:1px solid #e2e8f0;color:#64748b;padding:5px 10px;border-radius:5px;cursor:pointer">◀</button>`:'') +
-      `<div><div style="font-size:17px;font-weight:800;color:#0f172a;text-transform:capitalize">${mLabel}</div>` +
-      `<div style="font-size:10px;color:#94a3b8;margin-top:1px">Growth & Partnership Manager · Mobile-XL CIV</div></div>` +
-      (next?`<button onclick="tmSetMonth('${next}')" style="background:#fafbfc;border:1px solid #e2e8f0;color:#64748b;padding:5px 10px;border-radius:5px;cursor:pointer">▶</button>`:'') +
+    `<div style="display:flex;flex-direction:column;gap:6px">` +
+      `<div style="font-size:10px;color:#94a3b8">Growth & Partnership Manager · Mobile-XL CIV</div>` +
+      `<div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap">` +
+      allMk.map(m2=>{ const isCur=m2===mk; const lbl=new Date(m2+'-15').toLocaleString('fr-FR',{month:'short',year:'2-digit'}); const cl=tmPeriodeClosed(m2); return `<button onclick="tmSetMonth('${m2}')" style="padding:4px 9px;border-radius:14px;font-size:11px;font-weight:${isCur?'700':'500'};cursor:pointer;border:1px solid ${isCur?'#4f5bd5':'#e2e8f0'};background:${isCur?'#4f5bd5':'#fafbfc'};color:${isCur?'#fff':'#64748b'};white-space:nowrap">${cl?'🔒 ':''}${lbl}</button>`; }).join('') +
+      `</div>` +
     `</div>` +
     `<div style="display:flex;align-items:center;gap:10px">` +
       `<div style="text-align:right"><div style="font-size:26px;font-weight:800;color:${gCol}">${doneN}/6</div><div style="font-size:10px;color:#94a3b8">livrables</div></div>` +
-      `<button onclick="tmNewMonth()" style="background:#f0f4f8;border:1px solid #d8dde6;color:#64748b;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px">+ Mois</button>` +
+      `<button onclick="tmNewMonth()" style="background:#f0f4f8;border:1px solid #d8dde6;color:#64748b;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px">+ Période</button>` +
+      (md.cloture
+        ? `<span title="Clôturé le ${md.cloture.date}" style="font-size:11px;background:#22c55e22;color:#22c55e;border:1px solid #22c55e44;padding:6px 10px;border-radius:6px;font-weight:600">🔒 Clôturée</span>` +
+          `<button onclick="tmDecloturePeriode('${mk}')" title="Réouvrir (correction)" style="background:none;border:1px solid #e2e8f0;color:#94a3b8;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:11px">↩ Réouvrir</button>`
+        : `<button onclick="tmCloturePeriode('${mk}')" title="Figer le score et passer en lecture seule" style="background:#f59e0b22;border:1px solid #f59e0b;color:#f59e0b;padding:7px 12px;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600">🔒 Clôturer</button>`) +
       `<button onclick="tmToggleFS()" title="${_tmFullscreen?'Quitter plein écran':'Plein écran'}" style="background:${_tmFullscreen?'#4f5bd5':'#fff'};border:1px solid ${_tmFullscreen?'#4f5bd5':'#d8dde6'};color:${_tmFullscreen?'#fff':'#64748b'};padding:7px 11px;border-radius:7px;cursor:pointer;font-size:15px">${_tmFullscreen?'⊡':'⛶'}</button>` +
     `</div>` +
   `</div>` +
+  // Bannière clôture
+  (md.cloture ? `<div style="background:#22c55e0d;border:1px solid #22c55e33;border-radius:8px;padding:10px 14px;margin-bottom:10px;display:flex;align-items:center;gap:12px">
+    <span style="font-size:14px">🔒</span>
+    <div><div style="font-size:12px;font-weight:700;color:#22c55e">Période clôturée le ${md.cloture.date}</div>
+    <div style="font-size:11px;color:#64748b;margin-top:2px">Score figé : ${md.cloture.scoreText}</div></div>
+  </div>` : '') +
   // Barème mini-bars (clickable accordion)
   `<div style="display:grid;grid-template-columns:repeat(6,1fr);gap:5px;margin-bottom:0">` +
   Object.entries(bar).map(([k,b])=>{
@@ -6345,8 +7067,9 @@ function renderContrat() {
       `<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">` +
       `<div style="font-size:10px;color:${col};font-weight:600">${b.icon} ${b.label}</div>` +
       `<div style="display:flex;align-items:center;gap:3px"><span style="font-size:11px;font-weight:700;color:${col}">${b.pct}%</span><span style="font-size:8px;color:#94a3b8">${isOpen?'▲':'▼'}</span></div></div>` +
-      `<div style="background:#f8fafc;border-radius:2px;height:3px">` +
+      `<div style="background:#f8fafc;border-radius:2px;height:3px;margin-bottom:4px">` +
       `<div style="width:${b.pct}%;background:${col};height:3px;border-radius:2px"></div></div>` +
+      `<div style="font-size:9px;color:#94a3b8;line-height:1.3">${b.note}</div>` +
       `</div>`;
   }).join('') +
   `</div>` +
@@ -6354,9 +7077,33 @@ function renderContrat() {
 
   // Sub-tabs
   `<div style="display:flex;gap:4px;margin-bottom:14px;background:#f8fafc;border-radius:8px;padding:4px">` +
-  [['vue','🏠 Vue d\'ensemble'],['meetings','🤝 Meetings'],['tasks','✅ Tasks'],['fiches','📊 Fiches CP'],['hebdo','📧 Hebdo'],['stats_oci','📊 Stats OCI'],['scores','🎯 Scores'],['p360','🏢 Partner 360'],['rapport','📄 Rapport'],['ia','🤖 IA']].map(([id,lbl])=>
-    `<button onclick="tmSetSubTab('${id}')" style="flex:1;padding:8px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;${_tmSubTab===id?'background:#f0f4f8;color:#0f172a':'background:transparent;color:#64748b'}">${lbl}</button>`
-  ).join('') +
+  (()=>{
+    const grps=[
+      ['periode',  '📊 Période',     ['vue','scores']],
+      ['preuves',  '🤝 Meetings',    ['meetings']],
+      ['engagements','✅ Tâches',     ['tasks']],
+      ['partenaires','🏢 Partenaires',['fiches','p360']],
+      ['rapports', '📄 Rapports',    ['hebdo','stats_oci','rapport','ia']]
+    ];
+    const sub=_tmSubTab;
+    const activeGrp=grps.find(g=>g[2].includes(sub));
+    let h='';
+    grps.forEach(([gid,glbl,subs])=>{
+      const isActiveGrp=subs.includes(sub);
+      h+=`<div style="flex:1;position:relative">`;
+      h+=`<button onclick="_tmSubTab=\'${subs[0]}\';renderContrat()" style="width:100%;padding:8px 4px;border:none;border-radius:6px;cursor:pointer;font-size:11px;font-weight:600;${isActiveGrp?'background:#f0f4f8;color:#0f172a':'background:transparent;color:#64748b'}">${glbl}</button>`;
+      if(isActiveGrp && subs.length>1){
+        h+=`<div style="display:flex;gap:2px;padding:2px 2px 0;background:#f0f4f8;border-radius:0 0 6px 6px;margin-top:-2px">`;
+        subs.forEach(sid=>{
+          const SL={'vue':'Vue','scores':'Scores','meetings':'Meetings','tasks':'Tâches','fiches':'Fiches','p360':'P360','hebdo':'Hebdo','stats_oci':'Stats','rapport':'Rapport','ia':'IA'};
+          h+=`<button onclick="event.stopPropagation();_tmSubTab=\'${sid}\';renderContrat()" style="flex:1;padding:3px;border:none;border-radius:4px;cursor:pointer;font-size:10px;${sub===sid?'background:#fff;color:#0f172a;font-weight:700':'background:transparent;color:#64748b'}">${SL[sid]||sid}</button>`;
+        });
+        h+=`</div>`;
+      }
+      h+=`</div>`;
+    });
+    return h;
+  })() +
   `</div>` +
 
   // Content
@@ -6381,11 +7128,97 @@ function renderContrat() {
   if(_bdg){ _bdg.textContent=_nOvd; _bdg.style.display=_nOvd?'inline':'none'; }
 }
 
-function tmSetMonth(mk){ _tmMonth=mk; _tmExpMtg=null; _tmEditMtg=null; renderContrat(); }
+function tmSetMonth(mk){ _tmMonth=mk; _tmExpMtg=null; _tmEditMtg=null; _tmPendingDelete=null; renderContrat(); }
 function tmSetSubTab(id){ _tmSubTab=id; renderContrat(); }
 function tmNewMonth(){ const k=prompt('Mois (YYYY-MM) :',''); if(k&&/^\d{4}-\d{2}$/.test(k)){ saveTmMutation(s=>getMonthData(s,k)); _tmMonth=k; } }
 
 // ── MEETINGS ──────────────────────────────────────────────────────
+// ── Références de fichiers sur les meetings ───────────────────────────────────
+// Un meeting peut porter des refs : { id, nom, type, date, texte }
+// Le binaire reste sur disque ; le CRM stocke le pointeur + le contenu transcrit.
+// Types : note_manuscrite | note_vocale | photo | document | autre
+
+const TM_REF_TYPES = [
+  { id:'note_manuscrite', label:'📝 Note manuscrite' },
+  { id:'note_vocale',     label:'🎤 Note vocale transcrite' },
+  { id:'photo',           label:'📷 Photo' },
+  { id:'document',        label:'📄 Document' },
+  { id:'autre',           label:'📎 Autre' }
+];
+
+function tmAddRef(mid, mk) {
+  const nom   = prompt('Nom du fichier (ex: notes_oci_30juin.jpg) :');
+  if (!nom || !nom.trim()) return;
+  const types = TM_REF_TYPES.map(function(t,i){ return (i+1)+'. '+t.label; }).join('\n');
+  const tc    = prompt('Type de document :\n' + types + '\n\nNuméro :');
+  const tidx  = parseInt(tc||'5', 10) - 1;
+  const tidxSafe = Math.max(0, Math.min(isNaN(tidx)?4:tidx, TM_REF_TYPES.length-1));
+  const type  = TM_REF_TYPES[tidxSafe].id;
+  const texte = prompt('Contenu transcrit (facultatif) :') || '';
+  saveTmMutation(function(s) {
+    const m = (getMonthData(s, mk).meetings || []).find(function(x){ return x.id === mid; });
+    if (!m) return;
+    if (!m.refs) m.refs = [];
+    m.refs.push({ id: tmGenId(), nom: nom.trim(), type: type,
+                  date: new Date().toISOString().slice(0,10), texte: texte.trim() });
+  });
+  _tmExpMtg = mid;
+}
+
+function tmEditRef(mid, rid, mk) {
+  const s = initTaskMan();
+  const m = (getMonthData(s, mk).meetings || []).find(function(x){ return x.id === mid; });
+  if (!m) return;
+  const r = (m.refs || []).find(function(x){ return x.id === rid; });
+  if (!r) return;
+  const texte = prompt('Contenu transcrit :', r.texte || '');
+  if (texte === null) return;
+  saveTmMutation(function(s) {
+    const m2 = (getMonthData(s, mk).meetings || []).find(function(x){ return x.id === mid; });
+    const r2 = m2 && (m2.refs || []).find(function(x){ return x.id === rid; });
+    if (r2) r2.texte = texte.trim();
+  });
+  _tmExpMtg = mid;
+}
+
+function tmDeleteRef(mid, rid, mk) {
+  if (!confirm('Supprimer cette référence ?')) return;
+  saveTmMutation(function(s) {
+    const m = (getMonthData(s, mk).meetings || []).find(function(x){ return x.id === mid; });
+    if (m && m.refs) m.refs = m.refs.filter(function(x){ return x.id !== rid; });
+  });
+  _tmExpMtg = mid;
+}
+
+function tmRenderRefs(m, mk) {
+  const refs = m.refs || [];
+  let h = '<div style="margin-top:12px;padding-top:10px;border-top:1px solid #fafbfc">';
+  h += '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">';
+  h += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;color:#94a3b8">📎 Références (' + refs.length + ')</div>';
+  h += '<button onclick="event.stopPropagation();tmAddRef(\''+m.id+'\',\''+mk+'\')" style="font-size:10px;color:#4f5bd5;background:#4f5bd511;border:1px solid #4f5bd533;padding:2px 8px;border-radius:4px;cursor:pointer">+ Ajouter</button>';
+  h += '</div>';
+  if (!refs.length) {
+    h += '<div style="font-size:11px;color:#94a3b8;font-style:italic">Aucune référence — notes, photos et transcriptions vocales peuvent être attachées ici.</div>';
+  }
+  refs.forEach(function(r) {
+    const tp = TM_REF_TYPES.find(function(t){ return t.id === r.type; }) || TM_REF_TYPES[4];
+    h += '<div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;padding:8px 10px;margin-bottom:6px">';
+    h += '<div style="display:flex;align-items:center;gap:8px">';
+    h += '<span style="font-size:12px" title="'+tp.label+'">'+tp.label.split(' ')[0]+'</span>';
+    h += '<div style="flex:1;min-width:0"><div style="font-size:11px;font-weight:600;color:#334155;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">'+tmEsc(r.nom)+'</div>';
+    h += '<div style="font-size:10px;color:#94a3b8">'+r.date+'</div></div>';
+    h += '<button onclick="event.stopPropagation();tmEditRef(\''+m.id+'\',\''+r.id+'\',\''+mk+'\')" style="font-size:10px;color:#64748b;background:none;border:1px solid #e2e8f0;padding:2px 6px;border-radius:3px;cursor:pointer">✏️</button>';
+    h += '<button onclick="event.stopPropagation();tmDeleteRef(\''+m.id+'\',\''+r.id+'\',\''+mk+'\')" style="font-size:10px;color:#ef4444;background:none;border:1px solid #ef444433;padding:2px 6px;border-radius:3px;cursor:pointer">×</button>';
+    h += '</div>';
+    if (r.texte) {
+      h += '<div style="margin-top:6px;font-size:11px;color:#475569;background:#fff;border:1px solid #e2e8f0;border-radius:4px;padding:6px 8px;white-space:pre-wrap;max-height:80px;overflow-y:auto">'+tmEsc(r.texte)+'</div>';
+    }
+    h += '</div>';
+  });
+  h += '</div>';
+  return h;
+}
+
 function renderTmMeetings(md,mk){
   let mtgs=(md.meetings||[]).slice().sort((a,b)=>a.date.localeCompare(b.date));
   if(_tmFilter.dateFrom) mtgs=mtgs.filter(m=>m.date>=_tmFilter.dateFrom);
@@ -6413,8 +7246,10 @@ function renderTmMtgCard(m,mk,allTasks){
   const open=linked.filter(t=>t.statut!=='fait');
   if(isEdit) return renderTmMtgEdit(m,mk);
 
-  let h=`<div class="card" style="margin-bottom:10px;border-left:3px solid ${p.color}">`;
-  h+=`<div style="display:flex;align-items:center;gap:10px;cursor:pointer" onclick="tmToggleMtg('${m.id}')">`;
+  const isPend=_tmPendingDelete===m.id;
+  let h=`<div class="card" style="margin-bottom:10px;border-left:3px solid ${p.color};padding:0">`;
+  h+=`<div style="display:flex;align-items:stretch">`;
+  h+=`<div style="flex:1;padding:10px 12px;cursor:pointer;display:flex;align-items:center;gap:10px" onclick="tmToggleMtg('${m.id}')">`;
   h+=`<div style="flex:1">`;
   h+=`<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;flex-wrap:wrap">`;
   h+=`<span style="font-size:12px;font-weight:700;color:${p.color}">${m.partenaire}</span>`;
@@ -6422,9 +7257,15 @@ function renderTmMtgCard(m,mk,allTasks){
   m.bareme.forEach(bk=>{ const bc=tmBarCat(bk); h+=`<span style="font-size:10px;background:${bc.color}22;color:${bc.color};padding:1px 7px;border-radius:3px">${bc.icon} ${bc.label}</span>`; });
   h+=`</div><div style="font-size:11px;color:#64748b">${m.date}${m.lieu?' · '+m.lieu:''}</div>`;
   if(linked.length){ h+=`<div style="display:flex;gap:2px;margin-top:5px">`; linked.forEach(t=>{ h+=`<div style="height:3px;width:14px;border-radius:2px;background:${TM_STATUT_COLORS[t.statut]||'#64748b'}"></div>`; }); h+=`</div>`; }
-  h+=`</div><div style="text-align:right;min-width:90px">`;
+  h+=`</div>`;
+  h+=`<div style="text-align:right;min-width:70px">`;
   if(linked.length) h+=`<div style="font-size:11px;color:${open.length?'#f59e0b':'#22c55e'};font-weight:600">${linked.length-open.length}/${linked.length} ✓</div>`;
   h+=`<div style="font-size:16px;color:#94a3b8;margin-top:2px">${isExp?'▼':'▶'}</div>`;
+  h+=`</div></div>`;
+  h+=`<div style="display:flex;flex-direction:column;justify-content:center;padding:0 8px;border-left:1px solid #f1f5f9">`;
+  h+=(isPend
+    ?`<button onclick="tmDeleteMeeting('${m.id}','${mk}')" style="background:#ef4444;border:none;color:#fff;cursor:pointer;font-size:10px;padding:4px 8px;border-radius:3px;font-weight:700;white-space:nowrap">✓ Oui, supprimer</button><button onclick="_tmPendingDelete=null;renderContrat()" style="margin-top:4px;background:none;border:none;color:#94a3b8;cursor:pointer;font-size:10px;padding:2px">Annuler</button>`
+    :`<button onclick="tmDeleteMeeting('${m.id}','${mk}')" title="Supprimer ce meeting" style="background:none;border:none;color:#cbd5e1;cursor:pointer;font-size:16px;padding:4px;line-height:1" onmouseover="this.style.color='#ef4444'" onmouseout="this.style.color='#cbd5e1'">🗑</button>`);
   h+=`</div></div>`;
 
   if(isExp){
@@ -6467,9 +7308,12 @@ function renderTmMtgCard(m,mk,allTasks){
       linked.forEach(t=>{ h+=`<div style="display:flex;align-items:center;gap:6px;padding:3px 0;font-size:11px"><span style="color:${TM_STATUT_COLORS[t.statut]}">${TM_STATUT_ICONS[t.statut]}</span><span style="color:${t.statut==='fait'?'#94a3b8':'#94a3b8'};${t.statut==='fait'?'text-decoration:line-through':''}">${t.text.slice(0,70)}${t.text.length>70?'…':''}</span></div>`; });
       h+=`</div>`;
     }
+    h+=tmRenderRefs(m,mk);
     h+=`<div style="display:flex;gap:8px;margin-top:10px">`;
     h+=`<button onclick="event.stopPropagation();tmEditMtg('${m.id}')" style="font-size:11px;color:#64748b;background:#fafbfc;border:1px solid #e2e8f0;padding:5px 12px;border-radius:4px;cursor:pointer">✏️ Modifier</button>`;
-    h+=`<button onclick="event.stopPropagation();tmDeleteMeeting('${m.id}','${mk}')" style="font-size:11px;color:#ef4444;background:#ef444411;border:1px solid #ef444433;padding:5px 12px;border-radius:4px;cursor:pointer">🗑 Supprimer</button>`;
+    h+=(_tmPendingDelete===m.id
+  ?`<button onclick="event.stopPropagation();tmDeleteMeeting('${m.id}','${mk}')" style="font-size:11px;color:#fff;background:#ef4444;border:1px solid #ef4444;padding:5px 12px;border-radius:4px;cursor:pointer;font-weight:700">⚠ Confirmer la suppression ?</button>`
+  :`<button onclick="event.stopPropagation();tmDeleteMeeting('${m.id}','${mk}')" style="font-size:11px;color:#ef4444;background:#ef444411;border:1px solid #ef444433;padding:5px 12px;border-radius:4px;cursor:pointer">🗑 Supprimer</button>`);
     h+=`</div></div>`;
   }
   h+=`</div>`; return h;
@@ -6509,7 +7353,7 @@ function renderTmMtgEdit(m,mk){
   </div>`;
 }
 
-function tmToggleMtg(id){ _tmExpMtg=_tmExpMtg===id?null:id; _tmEditMtg=null; renderContrat(); }
+function tmToggleMtg(id){ _tmExpMtg=_tmExpMtg===id?null:id; _tmEditMtg=null; _tmPendingDelete=null; renderContrat(); }
 function tmEditMtg(id){ _tmEditMtg=id; _tmExpMtg=null; renderContrat(); }
 function tmNewMeeting(mk){
   saveTmMutation(s=>{ const md=getMonthData(s,mk); const id=tmGenId(); md.meetings.push({ id, date:new Date().toISOString().slice(0,10), partenaire:'OCI', mType:'physique', lieu:'', participants:'Mounirou (StarNews)', bareme:['suivi_telco'], points:[] }); _tmEditMtg=id; _tmExpMtg=null; });
@@ -6555,8 +7399,23 @@ function tmSaveMeeting(id,mk){
   });
   _tmEditMtg=null; _tmExpMtg=id;
 }
-function tmDeleteMeeting(id,mk){ if(!confirm('Supprimer ce meeting et ses tâches liées ?')) return;
-  saveTmMutation(s=>{ const md=getMonthData(s,mk); md.meetings=md.meetings.filter(x=>x.id!==id); md.tasks=(md.tasks||[]).filter(t=>t.meetingId!==id); }); _tmExpMtg=null; _tmEditMtg=null; }
+function tmDeleteMeeting(id,mk){
+  if(_tmPendingDelete===id){
+    _tmPendingDelete=null; _tmExpMtg=null; _tmEditMtg=null;
+    saveTmMutation(s=>{
+      if(!s._tombstones) s._tombstones=[];
+      if(!s._tombstones.includes(id)) s._tombstones.push(id);
+      const md=getMonthData(s,mk);
+      if(!md.meetings) md.meetings=[];
+      // Tombstone all tasks linked to this meeting before deleting them
+      (md.tasks||[]).forEach(t=>{ if(t.meetingId===id && !s._tombstones.includes(t.id)) s._tombstones.push(t.id); });
+      md.meetings=md.meetings.filter(x=>x.id!==id);
+      md.tasks=(md.tasks||[]).filter(t=>t.meetingId!==id);
+    });
+  } else {
+    _tmPendingDelete=id; renderContrat();
+  }
+}
 
 // Points
 function tmAddPoint(mid,mk){ saveTmMutation(s=>{ const m=getMonthData(s,mk).meetings.find(x=>x.id===mid); if(m){ if(!m.points)m.points=[]; m.points.push({id:tmGenId(),text:'Nouveau point abordé',taskId:null}); } }); _tmExpMtg=mid; }
@@ -6612,6 +7471,11 @@ function renderQuickAdd(md,mk){
       <select id="qa_cat" style="width:100%;background:#fafbfc;border:1px solid #e2e8f0;color:#0f172a;padding:8px;border-radius:6px;font-size:12px;margin-bottom:12px">
         ${TM_BAREME_CATS.map(c=>`<option value="${c.id}" ${qa.prefill.categorie===c.id?'selected':''}>${c.icon} ${c.label}</option>`).join('')}
       </select>
+      <label style="font-size:10px;color:#64748b;display:block;margin-bottom:4px">Obligation</label>
+      <select id="qa_owner" style="width:100%;background:#fafbfc;border:1px solid #e2e8f0;color:#0f172a;padding:8px;border-radius:6px;font-size:12px;margin-bottom:12px">
+        <option value="moi" ${(qa.prefill.owner||'moi')==='moi'?'selected':''}>🎯 Obligation de résultat (ma responsabilité)</option>
+        <option value="partenaire" ${qa.prefill.owner==='partenaire'?'selected':''}>📋 Obligation de diligence (responsabilité partenaire)</option>
+      </select>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px">
         <div><label style="font-size:10px;color:#64748b;display:block;margin-bottom:4px">Responsable</label>
           <input id="qa_resp" value="Mounirou" style="width:100%;background:#fafbfc;border:1px solid #e2e8f0;color:#0f172a;padding:8px;border-radius:6px;font-size:12px"></div>
@@ -6639,7 +7503,8 @@ function tmSubmitQA(mk){
   const stat=document.getElementById('qa_statut')?.value||'a_faire';
   saveTmMutation(s=>{
     const md=getMonthData(s,mk); const tid=tmGenId();
-    md.tasks.push({ id:tid, text, partenaire:part, categorie:cat, responsable:resp, date_creation:new Date().toISOString().slice(0,10), deadline:dl, statut:stat, source:qa.meetingId?'meeting':'manuel', meetingId:qa.meetingId||null, pointId:qa.pointId||null });
+    const own=(document.getElementById('qa_owner')||{}).value||'moi';
+  md.tasks.push({ id:tid, text, partenaire:part, categorie:cat, responsable:resp, owner:own, date_creation:new Date().toISOString().slice(0,10), deadline:dl, statut:stat, source:qa.meetingId?'meeting':'manuel', meetingId:qa.meetingId||null, pointId:qa.pointId||null });
     if(qa.meetingId && qa.pointId){ const m=md.meetings.find(x=>x.id===qa.meetingId); if(m){ const pt=(m.points||[]).find(x=>x.id===qa.pointId); if(pt) pt.taskId=tid; } }
   });
   _tmQA=null; if(qa.meetingId){ _tmExpMtg=qa.meetingId; _tmSubTab='meetings'; } else { _tmSubTab='tasks'; }
@@ -7145,11 +8010,139 @@ function renderTmTasks(md,mk){
   h+=`<div style="margin-left:auto;display:flex;gap:3px">`;
   h+=`<button onclick="_tmTaskView='list';renderContrat()" style="padding:5px 10px;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer;font-size:11px;${_tmTaskView==='list'?'background:#f0f4f8;color:#0f172a':'background:transparent;color:#64748b'}">≡ Liste</button>`;
   h+=`<button onclick="_tmTaskView='kanban';renderContrat()" style="padding:5px 10px;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer;font-size:11px;${_tmTaskView==='kanban'?'background:#f0f4f8;color:#0f172a':'background:transparent;color:#64748b'}">⊡ Kanban</button>`;
+  h+=`<button onclick="_tmTaskView='backlog';renderContrat()" title="Toutes les tâches ouvertes, toutes périodes confondues" style="padding:5px 10px;border-radius:4px;border:1px solid #e2e8f0;cursor:pointer;font-size:11px;${_tmTaskView==='backlog'?'background:#f0f4f8;color:#0f172a':'background:transparent;color:#64748b'}">🗂 Backlog</button>`;
   h+=`</div></div>`;
 
-  h+=_tmTaskView==='kanban'?renderTmKanban(fil,mk,mtgs):renderTmTaskList(fil,mk,mtgs);
+  h+= _tmTaskView==='backlog' ? renderTmBacklog(mk)
+    : _tmTaskView==='kanban'  ? renderTmKanban(fil,mk,mtgs)
+    :                           renderTmTaskList(fil,mk,mtgs);
   h+=`<div style="margin-top:12px"><button onclick="tmManualTask('${mk}')" style="background:#4f5bd520;border:1px dashed #4f5bd5;color:#4f5bd5;padding:8px 16px;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600">+ Nouvelle tâche manuelle</button></div>`;
   h+=`</div>`; return h;
+}
+
+// ── Backlog transverse : toutes les tâches non terminées, toutes périodes ──
+// Lecture seule sur l'agrégat ; le scoring continue de ne lire que md.tasks de la période.
+function renderTmBacklog(curMk){
+  var s=initTaskMan();
+  var today=new Date().toISOString().slice(0,10);
+  var rows=[];
+  Object.keys(s).sort().forEach(function(mk){
+    if(!/^\d{4}-\d{2}$/.test(mk)) return;
+    var md=s[mk]; if(!md) return;
+    (md.tasks||[]).forEach(function(t){
+      if(t.statut==='fait') return;
+      if(_tmFilter.statut     && t.statut!==_tmFilter.statut) return;
+      if(_tmFilter.partenaire && t.partenaire!==_tmFilter.partenaire) return;
+      if(_tmFilter.categorie  && t.categorie!==_tmFilter.categorie) return;
+      var ref=t.deadline||t.date_creation||'';
+      if(_tmFilter.dateFrom && ref<_tmFilter.dateFrom) return;
+      if(_tmFilter.dateTo   && ref>_tmFilter.dateTo) return;
+      rows.push({ t:t, mk:mk });
+    });
+  });
+  if(!rows.length) return '<div style="text-align:center;padding:32px;color:#94a3b8;font-size:13px">Aucune tâche ouverte sur l\'ensemble des périodes</div>';
+
+  rows.sort(function(a,b){
+    var da=a.t.deadline||'9999-12-31', db=b.t.deadline||'9999-12-31';
+    return da.localeCompare(db) || a.mk.localeCompare(b.mk);
+  });
+  var late=rows.filter(function(r){ return r.t.deadline && r.t.deadline<today; }).length;
+
+  var h='<div>';
+  h+='<div style="background:#4f5bd50d;border:1px solid #4f5bd533;border-radius:8px;padding:10px 12px;margin-bottom:12px;display:flex;align-items:center;gap:14px;flex-wrap:wrap">';
+  h+='<span style="font-size:12px;font-weight:700;color:#4f5bd5">'+rows.length+' tâche'+(rows.length>1?'s':'')+' ouverte'+(rows.length>1?'s':'')+'</span>';
+  if(late) h+='<span style="font-size:11px;color:#ef4444;font-weight:600">dont '+late+' en retard</span>';
+  h+='<span style="font-size:10px;color:#94a3b8;margin-left:auto">Toutes périodes confondues — cliquer sur le badge de période pour y basculer</span>';
+  h+='</div>';
+
+  rows.forEach(function(r){
+    var t=r.t, mk=r.mk;
+    var pa=tmPartner(t.partenaire), bc=tmBarCat(t.categorie), sc=TM_STATUT_COLORS[t.statut];
+    var overdue=t.deadline && t.deadline<today;
+    var isCur=(mk===curMk);
+    h+='<div style="padding:9px 0;border-bottom:1px solid #f1f5f9;display:flex;align-items:flex-start;gap:8px">';
+    h+='<select onchange="tmSaveTaskField(\''+t.id+'\',\''+mk+'\',\'statut\',this.value)" style="flex-shrink:0;background:'+sc+'22;border:1px solid '+sc+'44;color:'+sc+';padding:3px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">';
+    TM_STATUTS.forEach(function(ss){ h+='<option value="'+ss+'"'+(t.statut===ss?' selected':'')+'>'+TM_STATUT_ICONS[ss]+' '+TM_STATUT_LABELS[ss]+'</option>'; });
+    h+='</select>';
+    h+='<div style="flex:1;min-width:0">';
+    h+='<div style="font-size:12px;color:#334155;line-height:1.5">'+tmEsc(t.text)+'</div>';
+    h+='<div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">';
+    h+='<span onclick="tmSetMonth(\''+mk+'\')" title="Aller à cette période" style="font-size:10px;background:'+(isCur?'#4f5bd522':'#e2e8f0')+';color:'+(isCur?'#4f5bd5':'#64748b')+';padding:1px 6px;border-radius:3px;cursor:pointer;font-weight:'+(isCur?'700':'500')+'">'+(isCur?'● ':'')+tmPeriodShort(mk)+'</span>';
+    h+='<span style="font-size:10px;background:'+pa.color+'22;color:'+pa.color+';padding:1px 6px;border-radius:3px">'+pa.label+'</span>';
+    h+='<span style="font-size:10px;background:'+bc.color+'22;color:'+bc.color+';padding:1px 6px;border-radius:3px">'+bc.icon+' '+bc.label+'</span>';
+    if(t.responsable) h+='<span style="font-size:10px;color:#64748b">👤 '+tmEsc(t.responsable)+'</span>';
+    if(t.deadline)    h+='<span style="font-size:10px;color:'+(overdue?'#ef4444':'#64748b')+'">📅 '+t.deadline+(overdue?' ⚠️':'')+'</span>';
+    if(t.source==='recurrent') h+='<span style="font-size:10px;color:#94a3b8" title="Tâche récurrente de période">↻ Récurrente</span>';
+    h+=tmLinkChips(t);
+    h+='</div></div>';
+    h+='<button onclick="tmSaveTaskField(\''+t.id+'\',\''+mk+'\',\'statut\',\'fait\');renderContrat()" title="Marquer comme fait" style="flex-shrink:0;font-size:10px;color:#0f9d58;background:#e9f7f0;border:1px solid #c2e8d5;padding:3px 9px;border-radius:4px;cursor:pointer;white-space:nowrap">✓ Fait</button>';
+    h+='</div>';
+  });
+  return h+'</div>';
+}
+
+function tmEsc(v){ return String(v==null?'':v).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+function tmPeriodShort(mk){
+  var M=['janv','fevr','mars','avr','mai','juin','juil','aout','sept','oct','nov','dec'];
+  var a=mk.split('-'); var m=parseInt(a[1],10);
+  if(!m||m<1||m>12) return mk;
+  return M[m-1]+' '+a[0].slice(2);
+}
+
+// ── Liens CRM : canal + campagne ──────────────────────────────────
+function tmCampAll(){
+  var out=[];
+  try{
+    var s=getCampState();
+    Object.keys(s).forEach(function(p){ (s[p]||[]).forEach(function(c){ out.push(c); }); });
+  }catch(e){}
+  out.sort(function(a,b){ return String(b.date||'').localeCompare(String(a.date||'')); });
+  return out;
+}
+function tmCampLabel(id){
+  var all=tmCampAll();
+  for(var i=0;i<all.length;i++){
+    if(all[i].id===id) return (all[i].date||'?')+' · '+(all[i].operateur||'')+' · '+(all[i].canal||'');
+  }
+  return 'Campagne introuvable';
+}
+function tmCampOptions(sel){
+  return tmCampAll().slice(0,200).map(function(c){
+    var lbl=(c.date||'?')+' · '+(c.operateur||'')+' · '+(c.canal||'');
+    return '<option value="'+tmEsc(c.id)+'"'+(sel===c.id?' selected':'')+'>'+tmEsc(lbl)+'</option>';
+  }).join('');
+}
+function tmLinkChips(t){
+  var h='';
+  if(t.linkCanal){
+    h+='<span onclick="event.stopPropagation();tmOpenCanal(\''+String(t.linkCanal).replace(/\'/g,"")+'\')" title="Ouvrir ce canal dans Campagnes" style="font-size:10px;background:#0ea5e922;color:#0ea5e9;padding:1px 6px;border-radius:3px;cursor:pointer">📺 '+tmEsc(t.linkCanal)+'</span>';
+  }
+  if(t.linkCampagne){
+    h+='<span onclick="event.stopPropagation();tmOpenCampagne(\''+String(t.linkCampagne).replace(/\'/g,"")+'\')" title="'+tmEsc(tmCampLabel(t.linkCampagne))+'" style="font-size:10px;background:#22c55e22;color:#22c55e;padding:1px 6px;border-radius:3px;cursor:pointer">📣 '+tmEsc(tmCampLabel(t.linkCampagne))+'</span>';
+  }
+  return h;
+}
+function tmNavCampagnes(){
+  var el=document.querySelector('.nav-tab[onclick*="campagnes"]');
+  if(typeof showTab==='function') showTab('campagnes', el);
+}
+function tmOpenCanal(canal){
+  try{ _campFiltCanal=canal; _campFiltOp='all'; _campFiltType='all'; _campFiltStatus='all'; }catch(e){}
+  _campSubTab='planning';
+  tmNavCampagnes();
+}
+function tmOpenCampagne(id){
+  try{
+    var s=getCampState();
+    Object.keys(s).forEach(function(p){
+      if((s[p]||[]).some(function(c){ return c.id===id; })) _campPeriod=p;
+    });
+    var all=tmCampAll();
+    for(var i=0;i<all.length;i++){ if(all[i].id===id && all[i].canal){ _campFiltCanal=all[i].canal; break; } }
+  }catch(e){}
+  _campSubTab='planning';
+  tmNavCampagnes();
 }
 
 function renderTmTaskList(tasks,mk,mtgs){
@@ -7183,8 +8176,22 @@ function renderTmTaskList(tasks,mk,mtgs){
           `</select>` +
         `</div>` +
         `<div>` +
+          `<div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Obligation</div>` +
+          `<select onchange="tmSaveTaskField('${t.id}','${mk}','owner',this.value);renderContrat()" style="width:100%;background:#fafbfc;border:1px solid #e2e8f0;color:#334155;padding:4px 6px;border-radius:4px;font-size:11px">` +
+            `<option value="moi" ${(t.owner||'moi')==='moi'?'selected':''}>🎯 Résultat (moi)</option>` +
+            `<option value="partenaire" ${t.owner==='partenaire'?'selected':''}>📋 Diligence (partenaire)</option>` +
+          `</select>` +
+        `</div>` +
+        `<div>` +
           `<div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Responsable</div>` +
           `<input type="text" value="${t.responsable||''}" onblur="tmSaveTaskField('${t.id}','${mk}','responsable',this.value)" placeholder="Responsable…" style="width:100%;box-sizing:border-box;background:#fafbfc;border:1px solid #e2e8f0;color:#334155;padding:4px 6px;border-radius:4px;font-size:11px">` +
+        `</div>` +
+        `<div>` +
+          `<div style="font-size:10px;color:#94a3b8;margin-bottom:3px">🔗 Meeting lié (cette période)</div>` +
+          `<select onchange="tmSaveTaskField('${t.id}','${mk}','meetingId',this.value);renderContrat()" style="width:100%;background:#fafbfc;border:1px solid #e2e8f0;color:#334155;padding:4px 6px;border-radius:4px;font-size:11px">` +
+            `<option value="">— aucun meeting —</option>` +
+            mtgs.map(mm=>`<option value="${mm.id}" ${t.meetingId===mm.id?'selected':''}>${mm.date} · ${mm.partenaire} · ${tmMtgType(mm.mType).label}</option>`).join('') +
+          `</select>` +
         `</div>` +
         `<div style="grid-column:1/-1">` +
           `<div style="font-size:10px;color:#94a3b8;margin-bottom:3px">Deadline</div>` +
@@ -7195,18 +8202,26 @@ function renderTmTaskList(tasks,mk,mtgs){
     ) : '';
     return `<div style="padding:10px 0;border-bottom:1px solid #fafbfc">` +
       `<div style="display:flex;align-items:flex-start;gap:8px">` +
-        `<button onclick="tmCycleStatut('${t.id}','${mk}')" title="Cliquer pour changer le statut" style="flex-shrink:0;background:${sc}22;border:1px solid ${sc}44;color:${sc};padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;font-weight:600;white-space:nowrap">${TM_STATUT_ICONS[t.statut]} ${TM_STATUT_LABELS[t.statut]}</button>` +
+        `<select onchange="tmSaveTaskField('${t.id}','${mk}','statut',this.value)" style="flex-shrink:0;background:${sc}22;border:1px solid ${sc}44;color:${sc};padding:3px 6px;border-radius:4px;font-size:11px;font-weight:600;cursor:pointer;font-family:inherit">` +
+        TM_STATUTS.map(ss=>`<option value="${ss}" ${t.statut===ss?'selected':''}>${TM_STATUT_ICONS[ss]} ${TM_STATUT_LABELS[ss]}</option>`).join('') +
+        `</select>` +
         `<div style="flex:1;min-width:0">` +
           `<div contenteditable="true" onblur="tmSaveTaskField('${t.id}','${mk}','text',this.innerText)" style="font-size:12px;color:${done?'#94a3b8':'#ccc'};${done?'text-decoration:line-through':''};outline:none;line-height:1.5">${t.text}</div>` +
           `<div style="display:flex;align-items:center;gap:6px;margin-top:4px;flex-wrap:wrap">` +
             `<span style="font-size:10px;background:${p.color}22;color:${p.color};padding:1px 6px;border-radius:3px">${p.label}</span>` +
             `<span style="font-size:10px;background:${bc.color}22;color:${bc.color};padding:1px 6px;border-radius:3px">${bc.icon} ${bc.label}</span>` +
+            (t.owner==='partenaire'?`<span style="font-size:10px;background:#f59e0b22;color:#f59e0b;padding:1px 5px;border-radius:3px" title="Obligation de diligence — responsabilité partenaire">📋 Diligence</span>`:
+           `<span style="font-size:10px;background:#4f5bd522;color:#4f5bd5;padding:1px 5px;border-radius:3px" title="Obligation de résultat — ma responsabilité">🎯 Résultat</span>`) +
             (t.responsable?`<span style="font-size:10px;color:#64748b">👤 ${t.responsable}</span>`:'') +
             (t.deadline?`<span style="font-size:10px;color:${overdue?'#ef4444':'#64748b'}">📅 ${t.deadline}${overdue?' ⚠️':''}</span>`:'') +
-            (sm?`<span style="font-size:10px;color:#d8dde6" title="Source : ${sm.partenaire} ${sm.date}">🔗 Meeting</span>`:`<span style="font-size:10px;color:#d8dde6">✍️ Manuel</span>`) +
+            (sm?`<span style="font-size:10px;color:#d8dde6" title="Source : ${sm.partenaire} ${sm.date}">🔗 Meeting</span>`
+               :(t.source==='recurrent'?`<span style="font-size:10px;color:#94a3b8" title="Tâche récurrente de période">↻ Récurrente</span>`
+               :`<span style="font-size:10px;color:#d8dde6">✍️ Manuel</span>`)) +
+            tmLinkChips(t) +
           `</div>` +
         `</div>` +
         `<button onclick="tmToggleEdit('${t.id}')" title="Modifier" style="background:${isEditing?'#e6e9ef':'none'};border:1px solid ${isEditing?'#c7ced9':'transparent'};color:${isEditing?'#a78bfa':'#94a3b8'};cursor:pointer;font-size:13px;padding:2px 6px;border-radius:4px;flex-shrink:0">✏️</button>` +
+        (t.meetingType&&t.statut==='fait'&&!t._meetingCreated?`<button onclick="event.stopPropagation();tmCreateMeetingFromTask('${t.id}','${mk}')" title="Créer le meeting associé" style="background:#22c55e22;border:1px solid #22c55e44;color:#22c55e;cursor:pointer;font-size:11px;padding:2px 7px;border-radius:4px;flex-shrink:0;white-space:nowrap">📅 Créer meeting</button>`:'')+
         `<button onclick="tmDeleteTask('${t.id}','${mk}')" title="Supprimer" style="background:none;border:none;color:#d8dde6;cursor:pointer;font-size:15px;padding:0 4px;flex-shrink:0">×</button>` +
       `</div>` +
       editPanel +
@@ -7245,8 +8260,8 @@ function tmSaveTaskField(tid,mk,field,val){ saveTmMutation(s=>{ const t=(getMont
 function tmSetDateFait(tid,mk,val){ saveTmMutation(s=>{ const t=(getMonthData(s,mk).tasks||[]).find(x=>x.id===tid); if(t&&val) t.date_fait=val; }); }
 function tmToggleEdit(tid){ _tmEditId=(_tmEditId===tid)?null:tid; renderContrat(); }
 function tmSaveDeadline(tid,mk,val){ tmSaveTaskField(tid,mk,'deadline',val); _tmEditId=null; renderContrat(); }
-function tmDeleteTask(tid,mk){ saveTmMutation(s=>{ const md=getMonthData(s,mk); md.tasks=(md.tasks||[]).filter(x=>x.id!==tid); (md.meetings||[]).forEach(m=>{ (m.points||[]).forEach(pt=>{ if(pt.taskId===tid) pt.taskId=null; }); }); }); }
-function tmManualTask(mk){ _tmQA={ meetingId:null, pointId:null, prefill:{ text:'', partenaire:'OCI', categorie:'product' }, mk }; renderContrat(); }
+function tmDeleteTask(tid,mk){ saveTmMutation(s=>{ if(!s._tombstones) s._tombstones=[]; if(!s._tombstones.includes(tid)) s._tombstones.push(tid); const md=getMonthData(s,mk); md.tasks=(md.tasks||[]).filter(x=>x.id!==tid); (md.meetings||[]).forEach(m=>{ (m.points||[]).forEach(pt=>{ if(pt.taskId===tid) pt.taskId=null; }); }); }); }
+function tmManualTask(mk){ _tmQA={ meetingId:null, pointId:null, prefill:{ text:'', partenaire:'OCI', categorie:'product', owner:'moi' }, mk }; renderContrat(); }
 
 // ── RAPPORT panel ─────────────────────────────────────────────────
 function renderTmRapportPanel(md,mk,bar,mLabel){
@@ -8271,8 +9286,83 @@ const CAMP_TYPE_META = {
 // Icons that count toward barème (one per operator)
 const CAMP_BAREME_ICON = { MTN:'🔔', OCI:'📕' };
 
+
+// ── Migration campagnes SMS OCI/MTN Juillet 2026 (import Georges) ────────────
+function runCampMigrations() {
+  const SEED = [
+  {id:'c_sms_f990d7bb',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:24,note:'Import Georges OCI — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_3b4273cd',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:13,note:'Import Georges OCI — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_a5ff5ea4',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:18,note:'Import Georges OCI — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_a9fb773c',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-23',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:46,note:'Import Georges OCI — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_ad2e1bf6',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-23',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:38,note:'Import Georges OCI — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_c83c3d84',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:47,note:'Import Georges OCI — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_0350fe95',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:18,note:'Import Georges OCI — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_53a2ef34',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-26',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:26,note:'Import Georges OCI — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_ce843b21',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-26',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:18,note:'Import Georges OCI — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_99b1c922',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-26',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:35,note:'Import Georges OCI — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_b077db0e',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:14,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_15ddd13f',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:11,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_6ba934aa',operateur:'MTN',canal:'Flash Foot Vidéo (SMS Organique)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:16,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_5c035410',operateur:'MTN',canal:'MC One (SMS Organique)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:18,note:'Import — Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_8df60d99',operateur:'MTN',canal:'Flash Foot Vidéo (SMS Organique)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:26,note:'Import — Retention & Winback, Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_77c2c081',operateur:'MTN',canal:'Didi B (SMS Organique)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:15,note:'Import — Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_273eba69',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:9,note:'Import — Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f76a27d4',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:7,note:'Import — Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_c28af441',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-26',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:6,note:'Import — Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_fc67b14a',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-26',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:8,note:'Import — Cross Selling, WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_090bf5df',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:9,note:'Import — Retention & Winback, Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_2b31305c',operateur:'MTN',canal:'Africa Foot 2024 Combo Data (SMS Bundle)',type:'sms',date:'2026-07-22',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:23,note:'Import — Retention & Winback, Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f6c0f78a',operateur:'MTN',canal:'Africa Foot 2024 Combo Data (SMS Bundle)',type:'sms',date:'2026-07-25',period:'2026-08',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:27,note:'Import — WinBack, Retention & Winback',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_fe716476',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-16',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:43,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_54a04573',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-16',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:34,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_cc7760eb',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-16',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:23,note:'Import — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_d1950f5d',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-17',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:56,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_6ca479f3',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-14',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:3800,note:'Import Georges OCI — 11072026_BUNDLE87INFO_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_7b160d31',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-15',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:11400,note:'Import Georges OCI — BUNDLE_7INFO_Billed_msisdns_2026-06-01_2026-06-30_BASE1',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f1e2f802',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-17',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:7400,note:'Import Georges OCI — BUNDLE_7INFO_Billed_msisdns_2026-06-01_2026-06-30_BASE2',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_964e462d',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-14',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:5400,note:'Import Georges OCI — 11072026_BUNDLECUISINE_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_d26a2858',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-15',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:6600,note:'Import Georges OCI — BUNDLE_CUISINE_Billed_msisdns_2026-06-01_2026-06-30',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f7fb3c01',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-17',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:12200,note:'Import Georges OCI — BUNDLE_CUISINE_7INFO_NewSub_msisdns_2026-06-01_2026-06-30',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_45d22252',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-14',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:2100,note:'Import Georges OCI — 11072026_BUNDLELIFETV_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_93575a1c',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-15',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:1800,note:'Import Georges OCI — BUNDLE_LIFETV_Billed_msisdns_2026-06-01_2026-06-30_BASE1',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_bac8abc5',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-18',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:11400,note:'Import Georges OCI — BUNDLE_7INFO_Billed_msisdns_2026-06-01_2026-06-30_BASE3',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_1e836aba',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-18',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:11800,note:'Import Georges OCI — BUNDLE_LIFETV_Billed_msisdns_2026-06-01_2026-06-30_BASE3',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_69b403da',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-17',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:4300,note:'Import Georges OCI — BUNDLE_LIFETV_Billed_msisdns_2026-06-01_2026-06-30_BASE2',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_12983854',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-18',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:3400,note:'Import Georges OCI — BUNDLE_LIFETV_Billed_msisdns_2026-06-01_2026-06-30_BASE4',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f8c2a2e2',operateur:'MTN',canal:'Flash Foot Vidéo (SMS Organique)',type:'sms',date:'2026-07-09',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_10c28406',operateur:'MTN',canal:'Flash Foot Vidéo (SMS Organique)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_5b453006',operateur:'MTN',canal:'Africa Foot (SMS Organique)',type:'sms',date:'2026-07-09',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_b2b33be6',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-09',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_34a8cef1',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_3a0de4a5',operateur:'MTN',canal:'LIFE TV (SMS Organique)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — ',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_759498c3',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-09',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_d466c0d3',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_8fb77675',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-09',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Retention',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_11c4659e',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_b9212d87',operateur:'MTN',canal:'7Info (SMS Organique)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — Cross Selling',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_1da57bdc',operateur:'MTN',canal:'Albayane (SMS Organique)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:null,note:'Import — WinBack',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_f584046b',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:17800,note:'Import Georges OCI — 11072026_BUNDLE87INFO_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_004084ec',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:7800,note:'Import Georges OCI — 11072026_BUNDLECUISINE_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_5dc4e291',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-11',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:5800,note:'Import Georges OCI — 11072026_BUNDLELIFETV_BILLED_msisdns_2026-06-01_to_2026-06-07',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_37dd3106',operateur:'OCI',canal:'BUNDLE 7INFO (SMS Bundle)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:5200,note:'Import Georges OCI — BUNDLE_7INFO_BILLED_UNSUB_NEWSUB_25_16_31_12072026',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_9341eb4c',operateur:'OCI',canal:'BUNDLE CUISINE (SMS Bundle)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:13600,note:'Import Georges OCI — BUNDLE_CUISINE_BILLED_18_24_MAI_12072026',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_e5f360df',operateur:'OCI',canal:'BUNDLE LIFE TV (SMS Bundle)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:2800,note:'Import Georges OCI — BUNDLE_LIFETV_UNSUBS_BASE1_18_24_MAI_12072026',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'},
+  {id:'c_sms_bac44635',operateur:'MTN',canal:'Africa Foot 2024 Combo Data (SMS Bundle)',type:'sms',date:'2026-07-12',period:'2026-07',bareme:true,non_execute:false,statut:'analysee',abonnes_recrutes:5300,note:'Import — MTNCIV_MSISDNs_AFRICA_FOOT_2024_COMBO_DATA_May_To_July_05012026',source_doc:'Campagnes Free SMS CIV Juillet-Décembre 2026'}
+];
+  const s = getCampState();
+  let dirty = false;
+  SEED.forEach(function(c) {
+    if (!s[c.period]) s[c.period] = [];
+    if (!s[c.period].find(function(x){ return x.id === c.id; })) {
+      s[c.period].push(c);
+      dirty = true;
+    }
+  });
+  if (dirty) setCampState(s);
+}
+
 function getCampState(){ try{ return JSON.parse(localStorage.getItem(CAMP_KEY)||'null')||{}; }catch(e){ return {}; } }
-function setCampState(s){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); if(typeof gistPush==='function') gistPush(); }
+function setCampState(s){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); if(typeof gistPush==='function') gistPush(); if(typeof crmBackupWriteDebounced==='function') crmBackupWriteDebounced(); }
 
 function campPeriodFromDate(d){
   // Période contractuelle : 19 du mois N → 19 du mois N+1 → bucket = mois N+1
@@ -9158,6 +10248,23 @@ const _CAMP_CANAL_NORM = {
   // Combo/Data (canal brut conservé si pas de mapping évident)
 };
 const _CAMP_SNV_CANAUX = new Set(['Life TV','7Info','Flash Foot','AL Bayane','Africa Foot','Africa News','Flash I-Tech','Flash Infos','Cuisine']);
+// Normalisation robuste par mots-clés — tolère les suffixes (Combo Data, Semaine,
+// Orange…) présents dans les fichiers gateway et Good Analyse.
+// Ex : "Life Tv Combo Data" → "Life TV" · "Cuisine Semaine Combo Data" → "Cuisine"
+// Renvoie null si le canal n'est pas un canal SNV.
+function campNormCanal(raw){
+  var s=String(raw||'').toLowerCase();
+  if(/life\s*tv|lifetv/.test(s))        return 'Life TV';
+  if(/7\s*info/.test(s))                return '7Info';
+  if(/cuisine/.test(s))                 return 'Cuisine';
+  if(/al\s*bayane|albayane/.test(s))    return 'AL Bayane';
+  if(/africa\s*foot/.test(s))           return 'Africa Foot';
+  if(/africa\s*news/.test(s))           return 'Africa News';
+  if(/flash\s*foot/.test(s))            return 'Flash Foot';
+  if(/flash\s*i.?tech/.test(s))         return 'Flash I-Tech';
+  if(/flash\s*info/.test(s))            return 'Flash Infos';
+  return null;
+}
 function campParsePerfData(rows){
   const recs=[];
   rows.forEach(function(r){
@@ -9167,13 +10274,11 @@ function campParsePerfData(rows){
     if(dateStr.toLowerCase()==='report_date') return;
     var rawCanal=String(r[2]||'').trim();
     if(!rawCanal) return;
-    // Détecter le segment : BUNDLE dans le nom → bundle, sinon organique
+    // Détecter le segment : BUNDLE/COMBO/PASS dans le nom → bundle, sinon organique
     var isBundle = /bundle|combo|pass/i.test(rawCanal);
-    // Retirer le préfixe BUNDLE avant normalisation pour retrouver le canal de base
-    var base = rawCanal.replace(/^\s*(bundle|combo|pass)\s+/i,'').trim();
-    var canal=_CAMP_CANAL_NORM[base.toLowerCase()]||_CAMP_CANAL_NORM[rawCanal.toLowerCase()]||base;
-    // Garder uniquement les canaux SNV (organiques ET bundle)
-    if(!_CAMP_SNV_CANAUX.has(canal)) return;
+    // Normalisation robuste par mots-clés
+    var canal=campNormCanal(rawCanal);
+    if(!canal) return; // pas un canal SNV
     const gateway=String(r[1]||'').toLowerCase();
     const op=gateway.includes('orange')?'OCI':'MTN';
     recs.push({
@@ -9188,6 +10293,28 @@ function campParsePerfData(rows){
     });
   });
   return recs;
+}
+// Recrutements quotidiens par canal issus de l'historique gateway (fichiers civ_gateway_data_summary).
+// Même structure que goodanalyse — permet à l'attribution de couvrir les dates récentes.
+function campAttrGatewayRecs(){
+  var H = (typeof getH==='function') ? getH() : {};
+  var out=[];
+  Object.keys(H).forEach(function(date){
+    var day=H[date]||{};
+    [['organic','organic'],['bundle','bundle']].forEach(function(sk){
+      (day[sk[0]]||[]).forEach(function(r){
+        var rawCanal=String(r.channel_name||'').trim();
+        if(!rawCanal) return;
+        var canal=campNormCanal(rawCanal);
+        if(!canal) return;
+        var isBundle = sk[1]==='bundle' || /bundle|combo|pass/i.test(rawCanal);
+        var gw=String(r.gateway||'').toLowerCase();
+        var op=gw.includes('orange')?'OCI':'MTN';
+        out.push({ date:date, op:op, seg:isBundle?'bundle':'organic', canal:canal, recrutes:parseInt(r.new_subscribers)||0 });
+      });
+    });
+  });
+  return out;
 }
 // Ancien parser campagnes digitales (format M/D/YYYY — conservé pour coller manuellement)
 function campParseDigitalGrid(rows){
@@ -9426,15 +10553,23 @@ function campAttrBuildIndex(op, seg, canal){
 // ── Série quotidienne Good Analyse ───────────────────────────────
 function campAttrSeries(op, seg, canal){
   var perf=getCampPerf();
-  var recs=((perf.goodanalyse||{}).recs)||[];
+  var gaRecs=((perf.goodanalyse||{}).recs)||[];
+  var gwRecs=campAttrGatewayRecs();
+  function keep(r){
+    if(!r.date) return false;
+    if(op && r.op!==op) return false;
+    if(seg && r.seg && r.seg!==seg) return false;
+    if(canal && r.canal!==canal) return false;
+    return true;
+  }
+  // Deux sources : Good Analyse (historique long) + gateway quotidien (récent).
+  // Elles se chevauchent → le gateway gagne pour les dates qu'il couvre (évite le double comptage).
+  var byGA={}, byGW={};
+  gaRecs.forEach(function(r){ if(keep(r)) byGA[r.date]=(byGA[r.date]||0)+(r.recrutes||0); });
+  gwRecs.forEach(function(r){ if(keep(r)) byGW[r.date]=(byGW[r.date]||0)+(r.recrutes||0); });
   var byDate={};
-  recs.forEach(function(r){
-    if(!r.date) return;
-    if(op && r.op!==op) return;
-    if(seg && r.seg && r.seg!==seg) return;
-    if(canal && r.canal!==canal) return;
-    byDate[r.date]=(byDate[r.date]||0)+(r.recrutes||0);
-  });
+  Object.keys(byGA).forEach(function(d){ byDate[d]=byGA[d]; });
+  Object.keys(byGW).forEach(function(d){ byDate[d]=byGW[d]; }); // gateway prioritaire
   return byDate;
 }
 
@@ -11283,6 +12418,7 @@ function tmBarPanel(bar, md, mk) {
     h += tmBarMeetingList(prMtgs, mk);
     h += `</div><div>`;
     const pb=_tmPeriodBounds(mk);
+    const today=new Date().toISOString().slice(0,10);
     const ajourN=prTasks.filter(t=> t.statut==='fait' || (t.derniere_relance && t.derniere_relance>=pb.start && t.derniere_relance<=pb.end)).length;
     h += `<div style="font-size:10px;font-weight:700;color:#64748b;margin-bottom:6px;text-transform:uppercase;letter-spacing:.5px">Diligence produit — ${ajourN}/${prTasks.length} à jour</div>`;
     h += `<div style="font-size:9.5px;color:#94a3b8;margin-bottom:8px;line-height:1.5">Obligation de moyens : un point compte s'il est <b>fait</b> ou <b>relancé</b> dans la période (${pb.start} → ${pb.end}).</div>`;
@@ -12464,6 +13600,21 @@ const FIN_DEFAULT_STATE = {
 /* Migre les anciennes structures vers le modele evolutif (idempotent) */
 function finMigrate(s) {
   if (!s.journal) s.journal = [];
+  // Taux de change : donnee stockee et datee, plus de 600 code en dur
+  if (!s.config) s.config = {};
+  if (s.config.taux_usd_xaf == null) {
+    s.config.taux_usd_xaf = 600;
+    s.config.taux_date    = '2026-07-29';
+    s.config.taux_source  = 'Valeur historique du CRM — a actualiser';
+  }
+  // TVA DGI : dette confirmee, echeance a renseigner (decision Mounir 29/07/2026)
+  (s.charges || []).forEach(function(c) {
+    if (c.id === 'ch008' && c.statut === 'a_verifier') {
+      c.statut = 'confirme';
+      if (c.date_echeance === undefined) c.date_echeance = null;
+      c.notes = 'Notification 03/07. Montant confirme ~10M FCFA. Echeance a renseigner.';
+    }
+  });
   (s.dettes_personnel || []).forEach(function(d) {
     if (!d.mois) {
       d.mois = {};
@@ -12486,6 +13637,450 @@ function getFinState() {
 function setFinState(s) {
   localStorage.setItem(FIN_KEY, JSON.stringify(s));
   if (typeof gistPush === 'function') gistPush();
+  if (typeof crmBackupWriteDebounced === 'function') crmBackupWriteDebounced();
+}
+
+/* ── Conversion multi-devise ─────────────────────────────────────────────────
+   Le taux vit dans s.config.taux_usd_xaf (modifiable, date). */
+function finTaux(s) {
+  return (s && s.config && s.config.taux_usd_xaf) || 600;
+}
+function finToXAF(montant, devise, s) {
+  var m = montant || 0;
+  return devise === 'USD' ? m * finTaux(s) : m;
+}
+function finFmtXAF(v) {
+  return Math.round(v || 0).toLocaleString('fr-FR') + ' XAF';
+}
+function finSetTaux(val) {
+  var v = parseFloat(String(val).replace(/[^\d.]/g, ''));
+  if (!v || v <= 0) return;
+  var s = getFinState();
+  if (!s.config) s.config = {};
+  var before = s.config.taux_usd_xaf;
+  s.config.taux_usd_xaf = v;
+  s.config.taux_date = new Date().toISOString().slice(0, 10);
+  finLog(s, 'config', '', 'Taux USD/XAF', 'taux_usd_xaf', before, v, 'manuel');
+  setFinState(s);
+  renderFinance();
+}
+
+/* ── Position nette ──────────────────────────────────────────────────────────
+   Sépare systématiquement le CONFIRME de l'A VERIFIER : mélanger les deux
+   dans un total unique surestime le passif. */
+function finPosition(s) {
+  var sum = function(arr, fn) { return arr.reduce(function(t, x) { return t + (fn(x) || 0); }, 0); };
+
+  // Créances : ce qu'on nous doit
+  var ouvertes  = (s.factures || []).filter(function(f) { return f.statut !== 'paye'; });
+  var aEncaisser = sum(ouvertes, function(f) { return f.montant_snv; });
+
+  // Dettes CP : confirmées vs à vérifier
+  var cpAll     = (s.dettes_cp || []).filter(function(d) { return d.statut !== 'regle'; });
+  var cpConf    = cpAll.filter(function(d) { return d.statut !== 'a_verifier'; });
+  var cpVerif   = cpAll.filter(function(d) { return d.statut === 'a_verifier'; });
+  var detteCPConf  = sum(cpConf,  function(d) { return d.montant; });
+  var detteCPVerif = sum(cpVerif, function(d) { return d.montant; });
+
+  // Personnel
+  var persActifs = (s.dettes_personnel || []).filter(function(d) { return d.statut !== 'regle'; });
+  var dettePers  = sum(persActifs, finPersNet);
+
+  // Charges : conversion multi-devise, séparation confirmé / à vérifier
+  var chAll   = (s.charges || []).filter(function(c) { return c.statut !== 'regle'; });
+  var chConf  = chAll.filter(function(c) { return c.statut !== 'a_verifier'; });
+  var chVerif = chAll.filter(function(c) { return c.statut === 'a_verifier'; });
+  var chargesConf  = sum(chConf,  function(c) { return finToXAF(c.montant, c.devise, s); });
+  var chargesVerif = sum(chVerif, function(c) { return finToXAF(c.montant, c.devise, s); });
+
+  var aPayerConf  = detteCPConf + dettePers + chargesConf;
+  var aPayerVerif = detteCPVerif + chargesVerif;
+
+  return {
+    aEncaisser: aEncaisser, nbCreances: ouvertes.length,
+    detteCPConf: detteCPConf, detteCPVerif: detteCPVerif,
+    dettePers: dettePers, nbPers: persActifs.length,
+    chargesConf: chargesConf, chargesVerif: chargesVerif,
+    aPayerConf: aPayerConf, aPayerVerif: aPayerVerif,
+    aPayerTotal: aPayerConf + aPayerVerif,
+    netConf: aEncaisser - aPayerConf,
+    netTotal: aEncaisser - aPayerConf - aPayerVerif
+  };
+}
+
+/* ── Balance âgée des créances ────────────────────────────────────────────────
+   Ancienneté calculée depuis le mois de facturation (le mois de service),
+   pas depuis la date d'émission : c'est l'âge réel de la créance. */
+function finAgingAR(s) {
+  var today = new Date();
+  var buckets = [
+    { id:'b030', label:'0 – 30 j',  min:0,   max:30,   color:'#22c55e', total:0, items:[] },
+    { id:'b060', label:'30 – 60 j', min:30,  max:60,   color:'#84cc16', total:0, items:[] },
+    { id:'b090', label:'60 – 90 j', min:60,  max:90,   color:'#f59e0b', total:0, items:[] },
+    { id:'b90p', label:'90 j et +', min:90,  max:1e9,  color:'#ef4444', total:0, items:[] }
+  ];
+  (s.factures || []).filter(function(f) { return f.statut !== 'paye'; }).forEach(function(f) {
+    // Référence : fin du mois de service facturé
+    var parts = (f.mois || '').split('-');
+    if (parts.length < 2) return;
+    var ref = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0); // dernier jour du mois
+    var age = Math.floor((today - ref) / 86400000);
+    if (age < 0) age = 0;
+    var b = buckets.find(function(x) { return age >= x.min && age < x.max; }) || buckets[3];
+    b.total += f.montant_snv || 0;
+    b.items.push({ f:f, age:age });
+  });
+  var total = buckets.reduce(function(t,b) { return t + b.total; }, 0);
+  buckets.forEach(function(b) { b.pct = total ? Math.round(b.total / total * 100) : 0; });
+  return { buckets: buckets, total: total };
+}
+
+function renderFinAging(s) {
+  var A = finAgingAR(s);
+  if (!A.total) return '';
+  var h = '<div class="card" style="margin-bottom:16px">';
+  h += '<div style="font-weight:700;color:#1e293b;margin-bottom:4px">Balance âgée des créances</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:14px">Ancienneté comptée depuis la fin du mois de service facturé</div>';
+  // Barre empilée
+  h += '<div style="display:flex;height:22px;border-radius:5px;overflow:hidden;margin-bottom:12px">';
+  A.buckets.forEach(function(b) {
+    if (!b.total) return;
+    h += '<div title="' + b.label + ' : ' + finFmtXAF(b.total) + '" style="width:' + b.pct + '%;background:' + b.color + ';display:flex;align-items:center;justify-content:center;font-size:10px;color:#fff;font-weight:700">' + (b.pct >= 8 ? b.pct + '%' : '') + '</div>';
+  });
+  h += '</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px">';
+  A.buckets.forEach(function(b) {
+    h += '<div style="background:#fafbfc;border:1px solid ' + b.color + '33;border-radius:6px;padding:9px">'
+      + '<div style="font-size:10px;color:' + b.color + ';font-weight:700;margin-bottom:3px">' + b.label + '</div>'
+      + '<div style="font-size:14px;font-weight:800;color:#1e293b">' + Math.round(b.total).toLocaleString('fr-FR') + '</div>'
+      + '<div style="font-size:10px;color:#94a3b8">' + b.items.length + ' facture' + (b.items.length>1?'s':'') + '</div>'
+      + '</div>';
+  });
+  h += '</div>';
+  // Détail du bucket le plus ancien
+  var vieux = A.buckets[3];
+  if (vieux.items.length) {
+    h += '<div style="margin-top:12px;padding-top:12px;border-top:1px solid #f1f5f9">';
+    h += '<div style="font-size:11px;font-weight:700;color:#ef4444;margin-bottom:7px">Créances de plus de 90 jours</div>';
+    vieux.items.sort(function(a,b) { return b.age - a.age; }).forEach(function(it) {
+      h += '<div style="display:flex;align-items:center;gap:9px;padding:4px 0;border-bottom:1px solid #fafbfc;font-size:11px">'
+        + '<span style="font-weight:700;color:#ef4444;min-width:52px">' + it.age + ' j</span>'
+        + '<span style="color:#334155;min-width:64px">' + it.f.operateur + ' ' + it.f.mois + '</span>'
+        + '<span style="color:#64748b;flex:1">' + finStatutLabel(it.f.operateur, it.f.statut) + '</span>'
+        + '<span style="font-weight:700;color:#1e293b">' + (it.f.montant_snv||0).toLocaleString('fr-FR') + '</span>'
+        + '</div>';
+    });
+    h += '</div>';
+  }
+  return h + '</div>';
+}
+
+/* ── Calendrier de trésorerie 30 / 60 / 90 jours ──────────────────────────────
+   Entrées : factures non payées avec date d'échéance.
+   Sorties : charges avec date_fin, dettes CP avec échéance, personnel (exigible).
+   Les lignes sans date sont comptées à part — on ne les invente pas. */
+function finCashTimeline(s) {
+  var today = new Date(); today.setHours(0,0,0,0);
+  var mk = function(lbl, jours) {
+    return { label:lbl, jours:jours, entrees:0, sorties:0, items:[] };
+  };
+  var B = [ mk('0 – 30 j', 30), mk('30 – 60 j', 60), mk('60 – 90 j', 90) ];
+  var horsDate = { entrees:0, sorties:0, nb:0 };
+
+  var place = function(dateStr, montant, sens, label) {
+    if (!dateStr) { horsDate[sens] += montant; horsDate.nb++; return; }
+    var d = new Date(dateStr); if (isNaN(d)) { horsDate[sens] += montant; horsDate.nb++; return; }
+    var j = Math.ceil((d - today) / 86400000);
+    if (j < 0) j = 0;              // en retard → exigible immédiatement
+    var b = j <= 30 ? B[0] : j <= 60 ? B[1] : j <= 90 ? B[2] : null;
+    if (!b) return;                // au-delà de 90 j : hors horizon
+    b[sens] += montant;
+    b.items.push({ label:label, montant:montant, sens:sens, date:dateStr, jours:j });
+  };
+
+  (s.factures || []).filter(function(f){ return f.statut !== 'paye'; }).forEach(function(f) {
+    place(f.date_echeance, f.montant_snv || 0, 'entrees', 'Facture ' + f.operateur + ' ' + f.mois);
+  });
+  (s.charges || []).filter(function(c){ return c.statut !== 'regle'; }).forEach(function(c) {
+    place(c.date_echeance || c.date_fin, finToXAF(c.montant, c.devise, s), 'sorties', c.libelle + ' (' + c.beneficiaire + ')');
+  });
+  (s.dettes_cp || []).filter(function(d){ return d.statut !== 'regle'; }).forEach(function(d) {
+    place(d.date_echeance, d.montant || 0, 'sorties', 'CP ' + d.partenaire);
+  });
+  (s.dettes_personnel || []).filter(function(d){ return d.statut !== 'regle'; }).forEach(function(d) {
+    horsDate.sorties += finPersNet(d); horsDate.nb++;
+  });
+
+  var solde = 0;
+  B.forEach(function(b) { b.net = b.entrees - b.sorties; solde += b.net; b.cumul = solde; });
+  return { buckets:B, horsDate:horsDate };
+}
+
+function renderFinTimeline(s) {
+  var T = finCashTimeline(s);
+  var h = '<div class="card" style="margin-bottom:16px">';
+  h += '<div style="font-weight:700;color:#1e293b;margin-bottom:4px">Calendrier de trésorerie</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:14px">Basé sur les échéances renseignées. Les lignes en retard sont comptées comme exigibles immédiatement.</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px">';
+  T.buckets.forEach(function(b) {
+    var col = b.cumul >= 0 ? '#22c55e' : '#ef4444';
+    h += '<div style="background:#fafbfc;border:1px solid #e6e9ef;border-radius:7px;padding:11px">'
+      + '<div style="font-size:11px;font-weight:700;color:#64748b;margin-bottom:8px">' + b.label + '</div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:3px"><span style="color:#22c55e">Entrées</span><span style="color:#22c55e;font-weight:600">' + Math.round(b.entrees).toLocaleString('fr-FR') + '</span></div>'
+      + '<div style="display:flex;justify-content:space-between;font-size:11px;margin-bottom:7px"><span style="color:#ef4444">Sorties</span><span style="color:#ef4444;font-weight:600">' + Math.round(b.sorties).toLocaleString('fr-FR') + '</span></div>'
+      + '<div style="border-top:1px solid #e6e9ef;padding-top:6px;display:flex;justify-content:space-between;font-size:12px"><span style="color:#64748b">Solde cumulé</span><span style="font-weight:800;color:' + col + '">' + Math.round(b.cumul).toLocaleString('fr-FR') + '</span></div>'
+      + '</div>';
+  });
+  h += '</div>';
+  if (T.horsDate.nb) {
+    h += '<div style="margin-top:12px;padding:9px 12px;background:#f59e0b0d;border:1px solid #f59e0b33;border-radius:6px;font-size:11px;color:#b45309">'
+      + '<strong>' + T.horsDate.nb + ' engagement' + (T.horsDate.nb>1?'s':'') + ' sans échéance</strong> — '
+      + finFmtXAF(T.horsDate.sorties) + ' de sorties et ' + finFmtXAF(T.horsDate.entrees) + ' d\'entrées non planifiables. '
+      + 'Renseigner les dates pour les faire apparaître dans le calendrier.'
+      + '</div>';
+  }
+  return h + '</div>';
+}
+
+/* ── Rapprochement facture ↔ revenu brut gateway ──────────────────────────────
+   Le CRM détient le revenu quotidien par gateway (fichiers Ysmael).
+   Les factures sont saisies à la main. Rien ne vérifiait que les deux
+   concordent. Le rapport facturé/brut est le taux de reversement effectif :
+   c'est lui qui révèle une sous-facturation de l'opérateur.
+
+   Limite connue : le rapprochement n'est possible que sur les mois où
+   l'historique gateway est complet. Les mois partiels sont signalés. */
+function finGatewayRevenue(mois) {
+  if (typeof getH !== 'function') return null;
+  var H = getH() || {};
+  var res = { MTN:0, OCI:0, jours:0, premier:null, dernier:null };
+  Object.keys(H).forEach(function(d) {
+    if (d.slice(0,7) !== mois) return;
+    res.jours++;
+    if (!res.premier || d < res.premier) res.premier = d;
+    if (!res.dernier || d > res.dernier) res.dernier = d;
+    var day = H[d] || {};
+    var hasRows = (day.organic && day.organic.length) || (day.bundle && day.bundle.length);
+    if (hasRows) {
+      // Format détaillé (fichiers gateway quotidiens) : lignes par canal
+      ['organic','bundle'].forEach(function(sec) {
+        (day[sec] || []).forEach(function(r) {
+          var gw = String(r.gateway || '').toLowerCase();
+          var op = gw.indexOf('orange') >= 0 ? 'OCI' : 'MTN';
+          res[op] += parseFloat(r.revenue_xaf) || 0;
+        });
+      });
+    } else if (day.kpi) {
+      // Format agrégé (historique PRELOAD) : uniquement les totaux par opérateur
+      // org.rev = Σ revenue_xaf organic ; bun.revQS = Σ revenue_xaf bundle
+      var k = day.kpi;
+      if (k.mtn) res.MTN += (k.mtn.org && k.mtn.org.rev || 0) + (k.mtn.bun && k.mtn.bun.revQS || 0);
+      if (k.oci) res.OCI += (k.oci.org && k.oci.org.rev || 0) + (k.oci.bun && k.oci.bun.revQS || 0);
+      res.agrege = true;
+    }
+  });
+  if (!res.jours) return null;
+  // Nombre de jours attendus dans le mois
+  var parts = mois.split('-');
+  res.joursAttendus = new Date(parseInt(parts[0],10), parseInt(parts[1],10), 0).getDate();
+  res.complet = res.jours >= res.joursAttendus;
+  return res;
+}
+
+/* Rapprochement pour un mois : somme des factures de ce mois vs brut gateway */
+function finReconcileMois(s, mois) {
+  var gw = finGatewayRevenue(mois);
+  if (!gw) return null;
+  var out = { mois:mois, gw:gw, ops:[] };
+  FIN_OPERATEURS.forEach(function(op) {
+    var facs = (s.factures || []).filter(function(f) { return f.mois === mois && f.operateur === op.id; });
+    var facture = facs.reduce(function(t,f) { return t + (f.montant_snv || 0); }, 0);
+    var brut = gw[op.id] || 0;
+    out.ops.push({
+      id: op.id, color: op.color,
+      brut: brut, facture: facture, nbFactures: facs.length,
+      taux: brut > 0 ? (facture / brut * 100) : null
+    });
+  });
+  return out;
+}
+
+function renderFinReconcile(s) {
+  // Tous les mois présents soit en facture soit en historique gateway
+  var moisSet = {};
+  (s.factures || []).forEach(function(f) { if (f.mois) moisSet[f.mois] = 1; });
+  if (typeof getH === 'function') {
+    Object.keys(getH() || {}).forEach(function(d) { moisSet[d.slice(0,7)] = 1; });
+  }
+  var mois = Object.keys(moisSet).sort().reverse();
+
+  var h = '<div class="card" style="margin-bottom:16px">';
+  h += '<div style="font-weight:700;color:#1e293b;margin-bottom:4px">Rapprochement facturation ↔ revenu gateway</div>';
+  h += '<div style="font-size:11px;color:#94a3b8;margin-bottom:14px">Compare le montant facturé au revenu brut relevé dans les fichiers gateway. Le taux est le reversement effectif.</div>';
+
+  var lignes = 0, aucunCroise = true;
+  var body = '';
+  mois.forEach(function(m) {
+    var R = finReconcileMois(s, m);
+    var facsM = (s.factures || []).filter(function(f) { return f.mois === m; });
+    var totalFac = facsM.reduce(function(t,f) { return t + (f.montant_snv||0); }, 0);
+    if (!R && !totalFac) return;
+    lignes++;
+    if (R && totalFac) aucunCroise = false;
+
+    body += '<div style="padding:9px 0;border-bottom:1px solid #f1f5f9">';
+    body += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:5px">';
+    body += '<span style="font-size:12px;font-weight:700;color:#1e293b;min-width:64px">' + m + '</span>';
+    if (R && !R.gw.complet) {
+      body += '<span style="font-size:10px;background:#f59e0b18;color:#b45309;padding:1px 7px;border-radius:3px" title="Historique gateway incomplet">' + R.gw.jours + '/' + R.gw.joursAttendus + ' jours</span>';
+    }
+    if (R && R.gw.agrege) {
+      body += '<span style="font-size:10px;background:#64748b18;color:#64748b;padding:1px 7px;border-radius:3px" title="Historique agrégé — totaux par opérateur, pas de détail par canal">agrégé</span>';
+    }
+    if (!R) body += '<span style="font-size:10px;color:#94a3b8">aucune donnée gateway</span>';
+    if (R && !totalFac) body += '<span style="font-size:10px;color:#94a3b8">aucune facture saisie</span>';
+    body += '</div>';
+
+    if (R) {
+      body += '<div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px">';
+      R.ops.forEach(function(o) {
+        if (!o.brut && !o.facture) return;
+        // Plausibilité : un reversement > 110 % ou < 10 % signale une donnée
+        // incohérente (historique incomplet, facture couvrant une autre période…),
+        // pas une conclusion métier. On le signale au lieu de l'affirmer.
+        var tauxTxt = '—', tauxCol = '#94a3b8', tauxAlerte = '';
+        if (o.taux != null && o.facture > 0) {
+          tauxTxt = o.taux.toFixed(1) + ' %';
+          if (o.taux > 110 || o.taux < 10) {
+            tauxCol = '#b45309';
+            tauxAlerte = '<div style="margin-top:4px;font-size:9.5px;color:#b45309;background:#f59e0b14;border-radius:3px;padding:3px 5px;line-height:1.35">⚠ Ratio invraisemblable — vérifier que l\'historique du mois est complet et que la facture porte bien sur ce mois.</div>';
+          } else {
+            tauxCol = '#4f5bd5';
+          }
+        }
+        body += '<div style="background:#fafbfc;border:1px solid ' + o.color + '22;border-radius:6px;padding:8px 10px">'
+          + '<div style="font-size:11px;font-weight:700;color:' + o.color + ';margin-bottom:4px">' + o.id + '</div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#94a3b8">Brut gateway</span><span style="color:#334155">' + Math.round(o.brut).toLocaleString('fr-FR') + '</span></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:11px"><span style="color:#94a3b8">Facturé</span><span style="color:#334155">' + (o.facture ? Math.round(o.facture).toLocaleString('fr-FR') : '—') + '</span></div>'
+          + '<div style="display:flex;justify-content:space-between;font-size:11px;margin-top:4px;padding-top:4px;border-top:1px solid #eef2f6"><span style="color:#64748b">Reversement</span><span style="font-weight:800;color:' + tauxCol + '">' + tauxTxt + '</span></div>'
+          + tauxAlerte
+          + '</div>';
+      });
+      body += '</div>';
+    }
+    body += '</div>';
+  });
+
+  if (!lignes) {
+    h += '<div style="font-size:12px;color:#94a3b8;padding:14px 0;text-align:center">Aucune donnée à rapprocher.</div>';
+  } else {
+    if (aucunCroise) {
+      h += '<div style="background:#f59e0b0d;border:1px solid #f59e0b33;border-radius:6px;padding:10px 12px;margin-bottom:12px;font-size:11px;color:#b45309">'
+        + '<strong>Aucun mois croisé pour l\'instant.</strong> Les factures saisies et l\'historique gateway ne couvrent pas les mêmes mois. '
+        + 'Le taux de reversement se calculera automatiquement dès qu\'une facture sera saisie sur un mois disposant de données gateway.'
+        + '</div>';
+    }
+    h += body;
+  }
+  return h + '</div>';
+}
+
+/* ── Relances datées ──────────────────────────────────────────────────────────
+   Même logique que l'axe Produit du Cahier de charge : sur une créance qu'on
+   ne contrôle pas, ce qui se mesure est la diligence, pas l'encaissement. */
+function finSetRelance(type, id, val) {
+  var s = getFinState();
+  var coll = type === 'facture' ? (s.factures || []) : (s.dettes_cp || []);
+  var obj = coll.find(function(x) { return x.id === id; });
+  if (!obj) return;
+  var before = obj.derniere_relance || '';
+  obj.derniere_relance = val || null;
+  var lbl = type === 'facture' ? (obj.operateur + ' ' + obj.mois) : obj.partenaire;
+  finLog(s, type, id, lbl, 'derniere_relance', before, val, 'manuel');
+  setFinState(s);
+  renderFinance();
+}
+
+/* Jours écoulés depuis la dernière relance (null si jamais relancé) */
+function finJoursDepuisRelance(obj) {
+  if (!obj.derniere_relance) return null;
+  var d = new Date(obj.derniere_relance);
+  if (isNaN(d)) return null;
+  return Math.floor((new Date() - d) / 86400000);
+}
+
+/* Cellule de relance réutilisable : bouton date + badge d'ancienneté */
+function finRelanceCell(type, obj) {
+  var j = finJoursDepuisRelance(obj);
+  var col = j === null ? '#ef4444' : j > 30 ? '#ef4444' : j > 14 ? '#f59e0b' : '#22c55e';
+  var txt = j === null ? 'Jamais' : 'il y a ' + j + ' j';
+  var cur = obj.derniere_relance || '';
+  return '<div style="display:flex;align-items:center;gap:5px">'
+    + '<button onclick="calOpen(event,this,\'' + cur + '\',function(v){finSetRelance(\'' + type + '\',\'' + obj.id + '\',v);})" '
+    + 'style="background:#fafbfc;border:1px solid #e2e8f0;color:#64748b;padding:3px 7px;border-radius:4px;font-size:10.5px;cursor:pointer;white-space:nowrap">'
+    + (cur || '📅') + '</button>'
+    + '<span style="font-size:10px;color:' + col + ';font-weight:600;white-space:nowrap">' + txt + '</span>'
+    + '</div>';
+}
+
+/* ── Lien vers le Cahier de charge ────────────────────────────────────────────
+   Crée une tâche de recouvrement dans la période contractuelle courante,
+   avec owner='partenaire' (obligation de diligence, pas de résultat). */
+function finCreerTacheRecouvrement(type, id) {
+  if (typeof initTaskMan !== 'function') { alert('Section Cahier de charge indisponible.'); return; }
+  var s = getFinState();
+  var coll = type === 'facture' ? (s.factures || []) : (s.dettes_cp || []);
+  var obj = coll.find(function(x) { return x.id === id; });
+  if (!obj) return;
+
+  var texte, partenaire;
+  if (type === 'facture') {
+    texte = 'Relancer ' + obj.operateur + ' — facture ' + obj.mois + ' (' + (obj.montant_snv||0).toLocaleString('fr-FR') + ' XAF, statut : ' + finStatutLabel(obj.operateur, obj.statut) + ')';
+    partenaire = obj.operateur === 'MTN' ? 'MTN CIV' : 'OCI';
+  } else {
+    texte = 'Recouvrer ' + obj.partenaire + ' — ' + obj.libelle + ' (' + (obj.montant||0).toLocaleString('fr-FR') + ' XAF)';
+    var map = { 'LIFE TV':'Life TV', '7INFO':'7Info', 'AL BAYANE':'AL Bayane' };
+    partenaire = map[obj.partenaire] || 'Autre';
+  }
+
+  // Période contractuelle courante (19 → 19)
+  var mk = (typeof campPeriodFromDate === 'function')
+    ? campPeriodFromDate(new Date().toISOString().slice(0,10))
+    : new Date().toISOString().slice(0,7);
+
+  var ts = initTaskMan();
+  var md = getMonthData(ts, mk);
+  if (!md.tasks) md.tasks = [];
+  var exist = md.tasks.find(function(t) { return t.finRef === type + ':' + id; });
+  if (exist) {
+    alert('Une tâche existe déjà pour cette ligne dans la période ' + mk + '.');
+    return;
+  }
+  var bounds = (typeof _tmPeriodBounds === 'function') ? _tmPeriodBounds(mk) : null;
+  md.tasks.push({
+    id: (typeof tmGenId === 'function' ? tmGenId() : 'fin_' + Date.now()),
+    text: texte,
+    partenaire: partenaire,
+    categorie: type === 'facture' ? 'suivi_telco' : 'meeting_partenaires',
+    responsable: 'Mounirou',
+    owner: 'partenaire',
+    date_creation: new Date().toISOString().slice(0,10),
+    deadline: bounds ? bounds.end : null,
+    statut: 'a_faire',
+    source: 'finance',
+    finRef: type + ':' + id,
+    meetingId: null,
+    pointId: null
+  });
+  setTmState(ts);
+  alert('✅ Tâche créée dans le Cahier de charge — période ' + mk + '.');
+}
+
+/* Bouton compact de création de tâche */
+function finBtnTache(type, id) {
+  return '<button onclick="finCreerTacheRecouvrement(\'' + type + '\',\'' + id + '\')" '
+    + 'title="Créer la tâche de relance dans le Cahier de charge" '
+    + 'style="background:#4f5bd511;border:1px solid #4f5bd533;color:#4f5bd5;padding:3px 7px;border-radius:4px;font-size:10.5px;cursor:pointer;white-space:nowrap">📋 Tâche</button>';
 }
 
 /* Nombre d'urgences finance : echeances depassees + charges expirees ou a moins de 7 jours */
@@ -12942,12 +14537,49 @@ function renderFinDash(s) {
     var d=Math.ceil((new Date(c.date_fin)-new Date(today))/86400000);
     return d<=14&&d>=0;
   });
-  var html = '<div class="g4" style="margin-bottom:20px">'
+  /* ── POSITION NETTE ─────────────────────────────────────────────────────── */
+  var P = finPosition(s);
+  var netCol = P.netConf >= 0 ? '#22c55e' : '#ef4444';
+  var html = '<div class="card" style="margin-bottom:16px;border-left:4px solid ' + netCol + '">'
+    + '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">'
+      + '<div style="font-weight:700;color:#1e293b;font-size:14px">Position nette</div>'
+      + '<div style="display:flex;align-items:center;gap:6px;font-size:11px;color:#94a3b8">'
+        + 'Taux USD/XAF'
+        + '<input value="' + finTaux(s) + '" onblur="finSetTaux(this.value)" style="width:60px;background:#fafbfc;border:1px solid #e2e8f0;color:#334155;padding:3px 6px;border-radius:4px;font-size:11px;text-align:right">'
+        + '<span title="Dernière mise à jour">' + ((s.config && s.config.taux_date) || '—') + '</span>'
+      + '</div>'
+    + '</div>'
+    + '<div style="display:grid;grid-template-columns:1fr auto 1fr auto 1fr;gap:14px;align-items:center">'
+      + '<div><div style="font-size:11px;color:#94a3b8;margin-bottom:3px">À encaisser</div>'
+        + '<div style="font-size:20px;font-weight:800;color:#22c55e">' + finFmtXAF(P.aEncaisser) + '</div>'
+        + '<div style="font-size:10px;color:#94a3b8">' + P.nbCreances + ' factures opérateurs</div></div>'
+      + '<div style="font-size:20px;color:#cbd5e1">−</div>'
+      + '<div><div style="font-size:11px;color:#94a3b8;margin-bottom:3px">À payer (confirmé)</div>'
+        + '<div style="font-size:20px;font-weight:800;color:#ef4444">' + finFmtXAF(P.aPayerConf) + '</div>'
+        + '<div style="font-size:10px;color:#94a3b8">CP ' + Math.round(P.detteCPConf/1e6) + 'M · Personnel ' + Math.round(P.dettePers/1e6) + 'M · Charges ' + Math.round(P.chargesConf/1e6) + 'M</div></div>'
+      + '<div style="font-size:20px;color:#cbd5e1">=</div>'
+      + '<div><div style="font-size:11px;color:#94a3b8;margin-bottom:3px">Solde</div>'
+        + '<div style="font-size:24px;font-weight:800;color:' + netCol + '">' + finFmtXAF(P.netConf) + '</div>'
+        + '<div style="font-size:10px;color:#94a3b8">sur engagements confirmés</div></div>'
+    + '</div>'
+    + (P.aPayerVerif > 0
+      ? '<div style="margin-top:12px;padding-top:12px;border-top:1px dashed #e2e8f0;display:flex;align-items:center;gap:12px;flex-wrap:wrap">'
+        + '<span style="font-size:11px;background:#f59e0b18;color:#b45309;padding:3px 9px;border-radius:4px;font-weight:600">⚠ ' + finFmtXAF(P.aPayerVerif) + ' à vérifier</span>'
+        + '<span style="font-size:11px;color:#64748b">Non confirmé — exclu du solde ci-dessus. Solde si confirmé : <strong style="color:' + (P.netTotal>=0?'#22c55e':'#ef4444') + '">' + finFmtXAF(P.netTotal) + '</strong></span>'
+        + '</div>'
+      : '')
+    + '</div>';
+
+  html += '<div class="g4" style="margin-bottom:20px">'
     + '<div class="card"><div class="card-label">Encours AR Total</div><div class="card-value" style="font-size:19px;color:#ef4444">' + encours.toLocaleString('fr-FR') + '</div><div class="card-sub">XAF - ' + nbOpen + ' factures ouvertes</div></div>'
     + '<div class="card"><div class="card-label">Encours OCI</div><div class="card-value" style="font-size:19px;color:#fb923c">' + encoursOCI.toLocaleString('fr-FR') + '</div><div class="card-sub">XAF</div></div>'
     + '<div class="card"><div class="card-label">Encours MTN</div><div class="card-value" style="font-size:19px;color:#f59e0b">' + encoursMTN.toLocaleString('fr-FR') + '</div><div class="card-sub">XAF</div></div>'
     + '<div class="card"><div class="card-label">Charges urgentes</div><div class="card-value" style="font-size:28px;color:' + (chargesUrg.length?'#ef4444':'#22c55e') + '">' + chargesUrg.length + '</div><div class="card-sub">dans les 14 jours</div></div>'
     + '</div>';
+  html += renderFinTimeline(s);
+  html += renderFinAging(s);
+  html += renderFinReconcile(s);
+
   var alerts = [];
   (s.charges||[]).forEach(function(c){
     if(c.statut==='expire') alerts.push({lvl:'danger',msg:'EXPIRE - '+c.libelle+' ('+c.beneficiaire+') : '+finFmtMontant(c)});
@@ -13040,7 +14672,7 @@ function renderFinFactures(s) {
   html+='<div style="margin-bottom:12px;font-size:13px;color:#64748b">Encours : <strong style="color:#dc2626">'+encours.toLocaleString('fr-FR')+' XAF</strong></div>';
   html+='<div class="tbl-wrap"><table><thead><tr>'
     +'<th>Op.</th><th>Mois</th><th>Type</th><th>Montant SNV</th><th>Montant Operateur</th><th>Reconcil. Delta</th>'
-    +'<th>Statut</th><th>N FNE</th><th>Echeance paiement</th><th>Notes</th><th></th>'
+    +'<th>Statut</th><th>N FNE</th><th>Echeance paiement</th><th>Derniere relance</th><th>Notes</th><th></th>'
     +'</tr></thead><tbody>';
 
   filtered.forEach(function(f){
@@ -13077,6 +14709,7 @@ function renderFinFactures(s) {
       +'<td>'+statusSel+'</td>'
       +'<td>'+_finInp(f.fne_number,'N FNE','finSetFactField(\''+f.id+'\',\'fne_number\',this.value)','90px')+'</td>'
       +'<td>'+_finDate(f.date_echeance,'finSetFactField(\''+f.id+'\',\'date_echeance\',this.value)')+(isOverdue?'<span style="color:#dc2626;font-size:10px;display:block">Depassee</span>':'')+'</td>'
+      +'<td>'+(isPaye?'<span style="color:#94a3b8;font-size:11px">—</span>':finRelanceCell('facture',f)+'<div style="margin-top:3px">'+finBtnTache('facture',f.id)+'</div>')+'</td>'
       +'<td>'+_finInp(f.notes,'Notes...','finSetFactField(\''+f.id+'\',\'notes\',this.value)','160px')+'</td>'
       +'<td><button onclick="finDeleteFacture(\''+f.id+'\')" class="del-btn" title="Supprimer">&#10005;</button></td>'
       +'</tr>';
@@ -13085,7 +14718,7 @@ function renderFinFactures(s) {
     if(isOCI&&f.statut==='stats_oci_recues'&&f.montant_op&&f.montant_snv){
       var pct2=(f.montant_snv-f.montant_op)/f.montant_snv*100;
       var ok2=Math.abs(pct2)<=3;
-      html+='<tr><td colspan="11" style="padding:4px 12px 10px"><div style="background:'+(ok2?'rgba(21,128,61,.06)':'rgba(220,38,38,.06)')+';border:1px solid '+(ok2?'rgba(21,128,61,.2)':'rgba(220,38,38,.2)')+';border-radius:6px;padding:8px 14px;font-size:12px;color:'+(ok2?'#15803d':'#dc2626')+'">'+
+      html+='<tr><td colspan="12" style="padding:4px 12px 10px"><div style="background:'+(ok2?'rgba(21,128,61,.06)':'rgba(220,38,38,.06)')+';border:1px solid '+(ok2?'rgba(21,128,61,.2)':'rgba(220,38,38,.2)')+';border-radius:6px;padding:8px 14px;font-size:12px;color:'+(ok2?'#15803d':'#dc2626')+'">'+
         (ok2?'Reconciliation OK - ecart 3%. Passer le statut a "FNE generee" puis deposer au siege OCI.':'Ecart > 3% - Contacter Jean-Claude Kouame (OCI) avant emission FNE.')
         +'</div></td></tr>';
     }
@@ -13172,7 +14805,7 @@ function renderFinDettesCp(s) {
   html+='<div class="tbl-wrap"><table><thead><tr>'
     +'<th>Partenaire</th><th>Periode</th>'
     +'<th>Dette totale (XAF)</th><th>Pmt immediat (XAF)</th><th>Reste (XAF)</th>'
-    +'<th>Modalite</th><th>Statut</th><th>Notes</th><th></th>'
+    +'<th>Modalite</th><th>Statut</th><th>Derniere relance</th><th>Notes</th><th></th>'
     +'</tr></thead><tbody>';
   var sorted=liste.slice().sort(function(a,b){return (b.montant||0)-(a.montant||0);});
   sorted.forEach(function(d){
@@ -13187,6 +14820,7 @@ function renderFinDettesCp(s) {
       +'<td><span style="color:#ef4444;font-size:12px;font-weight:'+(d.montant_reste>0?'700':'400')+'">'+(d.montant_reste||0).toLocaleString('fr-FR')+'</span></td>'
       +'<td>'+_finInp(d.modalite||'','Modalite','finSetDetteCpField(\''+d.id+'\',\'modalite\',this.value)','130px')+'</td>'
       +'<td>'+statutSel+'</td>'
+      +'<td>'+(d.statut==='regle'?'<span style="color:#94a3b8;font-size:11px">—</span>':finRelanceCell('dette_cp',d)+'<div style="margin-top:3px">'+finBtnTache('dette_cp',d.id)+'</div>')+'</td>'
       +'<td>'+_finInp(d.notes||'','Notes','finSetDetteCpField(\''+d.id+'\',\'notes\',this.value)','150px')+'</td>'
       +'<td><button onclick="finDeleteDetteCP(\''+d.id+'\')" class="del-btn" title="Supprimer">&#10005;</button></td>'
       +'</tr>';
