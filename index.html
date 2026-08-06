@@ -990,8 +990,11 @@ summary{font-weight:700}
 
 <!-- ═══════════ ANALYSE ═══════════ -->
 <div class="section" id="tab-analyse">
-<div class="merged-stab-bar" data-state="_analyseTab" style="display:flex;gap:4px;margin-bottom:18px;background:#f8fafc;border-radius:8px;padding:4px"><button class="merged-stab" data-tab="tendances" onclick="setSubTab('_analyseTab','tendances')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">📈 Tendances</button><button class="merged-stab" data-tab="insights" onclick="setSubTab('_analyseTab','insights')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">🧠 Insights</button></div>
+<div class="merged-stab-bar" data-state="_analyseTab" style="display:flex;gap:4px;margin-bottom:18px;background:#f8fafc;border-radius:8px;padding:4px"><button class="merged-stab" data-tab="tendances" onclick="setSubTab('_analyseTab','tendances')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">📊 Analyse</button><button class="merged-stab" data-tab="insights" onclick="setSubTab('_analyseTab','insights')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">🧠 Insights</button></div>
   <div id="analyse-block-tendances">
+    <!-- Vue par cartes : une barre de filtres pilote tout l'écran -->
+    <div id="analyseCartes"></div>
+    <details style="margin-top:20px"><summary style="cursor:pointer;font-size:11px;color:#94a3b8;padding:6px 0">Ancienne vue tendances</summary>
 <div class="section-header">
     <h2>Analyse des tendances</h2>
     <p>Tendances sur 7 jours · causes identifiées · impact revenue</p>
@@ -1035,6 +1038,7 @@ summary{font-weight:700}
     <!-- Impact -->
     <div class="card" id="analyseImpact"></div>
   </div>
+    </details>
   </div>
   <div id="analyse-block-insights" style="display:none">
 <div class="section-header">
@@ -1043,6 +1047,8 @@ summary{font-weight:700}
   </div>
   <div id="insightsEmpty" class="alert alert-info">Besoin d'au moins 7 jours de données pour générer des insights.</div>
   <div id="insightsMain" style="display:none">
+    <!-- Registre des constats : mémoire analytique du BIC, alimentée au fil des analyses -->
+    <div id="constatsRegistre"></div>
     <div style="margin-bottom:16px;display:flex;align-items:center;gap:10px;flex-wrap:wrap">
       <!-- Mode toggle -->
       <button onclick="toggleDateMode('insights',this)" id="insightsModeBtn"
@@ -1177,7 +1183,10 @@ summary{font-weight:700}
     <h2>📈 Growth</h2>
     <p>Acquisition · Rétention · Revenue · Évolution</p>
   </div>
-  <div id="growthEmpty" class="alert alert-info">Besoin d'au moins 2 jours de données pour calculer les évolutions.</div>
+  <div class="merged-stab-bar" data-state="_growthTab" style="display:flex;gap:4px;margin-bottom:18px;background:#f8fafc;border-radius:8px;padding:4px"><button class="merged-stab" data-tab="moteurs" onclick="setSubTab('_growthTab','moteurs')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">⚙️ Moteurs</button><button class="merged-stab" data-tab="qualite" onclick="setSubTab('_growthTab','qualite')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">🎯 Qualité du recrutement</button><button class="merged-stab" data-tab="detail" onclick="setSubTab('_growthTab','detail')" style="padding:7px 18px;border:none;border-radius:6px;cursor:pointer;font-size:12px;font-weight:600;background:transparent;color:#64748b">📊 Évolution détaillée</button></div>
+  <div id="growth-block-moteurs"></div>
+  <div id="growth-block-qualite" style="display:none"></div>
+  <div id="growthEmpty" class="alert alert-info" style="display:none">Besoin d'au moins 2 jours de données pour calculer les évolutions.</div>
   <div id="growthMain" style="display:none">
     <!-- KPI sections métier -->
     <div id="growthKpis"></div>
@@ -1280,9 +1289,9 @@ function showTab(name, el) {
   if (name === 'dashboard') renderDash();
   if (name === 'contrat')   renderContrat();
   if (name === 'copier')    renderCopier();
-  if (name === 'growth')    renderGrowth();
+  if (name === 'growth')    setSubTab('_growthTab', _growthTab);
   if (name === 'history')   renderHistory();
-  if (name === 'analyse')  { if(_analyseTab==='insights') renderInsights(); else renderAnalyse(); }
+  if (name === 'analyse')   setSubTab('_analyseTab', _analyseTab);
   if (name === 'channels')  renderChannels();
   if (name === 'sante')    renderSante();
   if (name === 'upload')   { if(_dataTab==='fichiers') renderFiles(); }
@@ -2523,10 +2532,24 @@ function renderInsights() {
   if (allDates.length < 7) {
     if (emptyEl) emptyEl.style.display = 'block';
     if (mainEl)  mainEl.style.display  = 'none';
+    // Les constats restent lisibles : ils ne dépendent pas de la période affichée.
+    var _regSeul = document.getElementById('constatsRegistre');
+    if (_regSeul && mainEl) {
+      mainEl.style.display = 'block';
+      mainEl.querySelectorAll(':scope > div:not(#constatsRegistre)').forEach(function(el){
+        el.style.display = 'none';
+      });
+      _regSeul.innerHTML = renderConstats();
+    }
     return;
   }
   if (emptyEl) emptyEl.style.display = 'none';
   if (mainEl)  mainEl.style.display  = 'block';
+
+  // Le registre s'affiche même sans données journalières suffisantes ailleurs :
+  // ce sont des résultats acquis, pas des calculs sur la période courante.
+  var _reg = document.getElementById('constatsRegistre');
+  if (_reg) _reg.innerHTML = renderConstats();
 
   const { cur, prev, period } = getSectionDates('insights');
   if (!cur.length) return;
@@ -3421,7 +3444,7 @@ const CH_ALL = [
 
 let _chFilter  = { op:'all', type:'all' };
 let _chSelKey  = null;
-let _chSubTab  = 'perf';  // 'perf' | 'cp'
+let _chSubTab  = 'eff';   // 'eff' | 'cycle' | 'perf' | 'cp'
 // Fiches CP — date filter state
 let _cpActivePartners = (() => {
   try { return JSON.parse(localStorage.getItem('snv_cp_active')||'null') || ['AL Bayane','7Info','Life TV']; }
@@ -3612,7 +3635,7 @@ function renderChannels() {
 
   // ── Sub-navigation: Performance | Content Providers
   const subNav = '<div style="display:flex;gap:0;margin:0 0 16px 0;border-bottom:1px solid #e2e8f0">'
-    + [['perf','📊 Performance'],['cp','🤝 Content Providers']].map(([k,l]) => {
+    + [['eff','⚡ Efficacité'],['cycle','🔄 Cycle de vie'],['perf','📊 Performance'],['cp','🤝 Content Providers']].map(([k,l]) => {
         const on = _chSubTab === k;
         return `<button onclick="chSetSubTab('${k}')" style="padding:7px 18px;font-size:11px;font-weight:${on?700:500};border:none;border-bottom:2px solid ${on?'#4f5bd5':'transparent'};background:transparent;color:${on?'#4f5bd5':'#666'};cursor:pointer;margin-bottom:-1px;transition:all .15s">${l}</button>`;
       }).join('')
@@ -3621,6 +3644,16 @@ function renderChannels() {
   // ── CP Data view
   if (_chSubTab === 'cp') {
     contentEl.innerHTML = subNav + renderChCPData(h, period);
+    return;
+  }
+  // Vues BIC — lisent getH().organic[], donc voient les données fraîches que
+  // CP_EXT_DATA (figé au 14/06/2026) ne portait pas.
+  if (_chSubTab === 'eff') {
+    contentEl.innerHTML = subNav + bicRenderChEfficacite(period);
+    return;
+  }
+  if (_chSubTab === 'cycle') {
+    contentEl.innerHTML = subNav + bicRenderChCycle(60);
     return;
   }
 
@@ -6062,7 +6095,9 @@ function tmCreateMeetingFromTask(tid, mk) {
 // INIT
 // ═══════════════════════════════════════════════
 window.addEventListener('load', () => {
+  if (typeof consoleMonter === 'function') consoleMonter();
   runCampMigrations();
+  campFixMsisdnMislabeled();
   updateHistBadge(); renderDash(); renderSynthBar(); initMergedTabStyles();
   if (typeof finUpdateNavBadge === 'function') finUpdateNavBadge();
   // Restauration depuis sauvegarde locale si données manquantes
@@ -6613,6 +6648,7 @@ let _tmPendingDelete = null; // meeting id awaiting delete confirm
 let _tmTaskView= 'list';
 let _tmBarOpen = null;
 let _analyseTab = 'tendances';
+let _growthTab  = 'moteurs';   // 'moteurs' | 'qualite' | 'detail'
 let _statsMonth  = null;
 let _dataTab    = 'upload';
 let _tmFilter  = { statut:'', partenaire:'', categorie:'', dateFrom:'', dateTo:'' };
@@ -9361,8 +9397,56 @@ function runCampMigrations() {
   if (dirty) setCampState(s);
 }
 
-function getCampState(){ try{ return JSON.parse(localStorage.getItem(CAMP_KEY)||'null')||{}; }catch(e){ return {}; } }
+// getCampState : lecture avec auto-réparation des doublons.
+// Bug historique identifié le 04/08/2026 : certains imports (Balance+ MTN notamment)
+// ont été poussés en double dans le tableau sans vérification d'ID, ex. 82 campagnes
+// dupliquées jusqu'à 22 fois chacune. On dédoublonne systématiquement à la lecture,
+// par ID, en gardant la première occurrence — et on réécrit l'état nettoyé une fois
+// pour ne plus payer ce coût à chaque lecture suivante.
+function getCampState(){
+  try{
+    var s = JSON.parse(localStorage.getItem(CAMP_KEY)||'null')||{};
+    var changed = false;
+    Object.keys(s).forEach(function(period){
+      if(!Array.isArray(s[period])) return;
+      var seen = {}, deduped = [];
+      s[period].forEach(function(c){
+        if(!c || !c.id) return;
+        if(seen[c.id]){ changed = true; return; }
+        seen[c.id] = true;
+        deduped.push(c);
+      });
+      s[period] = deduped;
+    });
+    if(changed){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); }
+    return s;
+  }catch(e){ return {}; }
+}
 function setCampState(s){ localStorage.setItem(CAMP_KEY, JSON.stringify(s)); if(typeof gistPush==='function') gistPush(); if(typeof crmBackupWriteDebounced==='function') crmBackupWriteDebounced(); }
+
+// campFixMsisdnMislabeled : corrige les campagnes dont 'abonnes_recrutes' a été rempli
+// par erreur avec la taille d'une liste de contacts (MSISDN) importée, au lieu du nombre
+// réel de recrutements. Signal fiable identifié le 04/08/2026 : valeur > 500 sur ces
+// imports, avec un écart net (max légitime observé = 56) — la valeur est alors annulée
+// et le motif est tracé dans la note, sans jamais inventer un chiffre de remplacement.
+function campFixMsisdnMislabeled(){
+  var s = getCampState();
+  var dirty = false;
+  var FLAG = '⚠️ DONNÉE BASE MSISDN (liste ciblée, pas un recrutement mesuré) — ';
+  Object.keys(s).forEach(function(period){
+    if(!Array.isArray(s[period])) return;
+    s[period].forEach(function(c){
+      if(c && typeof c.abonnes_recrutes === 'number' && c.abonnes_recrutes > 500){
+        if(!(c.note||'').startsWith(FLAG)){
+          c.note = FLAG + (c.note||'');
+          c.abonnes_recrutes = null;
+          dirty = true;
+        }
+      }
+    });
+  });
+  if(dirty) setCampState(s);
+}
 
 function campPeriodFromDate(d){
   // Période contractuelle : 19 du mois N → 19 du mois N+1 → bucket = mois N+1
@@ -12849,9 +12933,25 @@ function renderTMDashboard(md, mk, bar) {
 function setSubTab(stateVar, tabId) {
   if (stateVar === '_analyseTab') {
     _analyseTab = tabId;
-    document.getElementById('analyse-block-tendances').style.display = tabId==='tendances' ? 'block' : 'none';
-    document.getElementById('analyse-block-insights').style.display  = tabId==='insights'  ? 'block' : 'none';
-    if (tabId === 'tendances') renderAnalyse(); else renderInsights();
+    ['tendances','insights'].forEach(function(b){
+      var el = document.getElementById('analyse-block-'+b);
+      if (el) el.style.display = (tabId===b) ? 'block' : 'none';
+    });
+    if (tabId === 'tendances') { renderAnalyseCartes(); renderAnalyse(); }
+    else if (tabId === 'insights') renderInsights();
+  } else if (stateVar === '_growthTab') {
+    _growthTab = tabId;
+    var bm = document.getElementById('growth-block-moteurs');
+    var bq = document.getElementById('growth-block-qualite');
+    var bd = document.getElementById('growthMain');
+    var be = document.getElementById('growthEmpty');
+    if (bm) bm.style.display = tabId==='moteurs' ? 'block' : 'none';
+    if (bq) bq.style.display = tabId==='qualite' ? 'block' : 'none';
+    if (bd) bd.style.display = tabId==='detail'  ? 'block' : 'none';
+    if (be) be.style.display = 'none';
+    if (tabId === 'moteurs' && bm) bm.innerHTML = bicRenderGrowthMoteurs(14);
+    if (tabId === 'qualite' && bq) bq.innerHTML = bicRenderGrowthQualite(30);
+    if (tabId === 'detail')  renderGrowth();
   } else if (stateVar === '_dataTab') {
     _dataTab = tabId;
     document.getElementById('upload-block-upload').style.display      = tabId==='upload'      ? 'block' : 'none';
@@ -12870,7 +12970,7 @@ function setSubTab(stateVar, tabId) {
 }
 
 function initMergedTabStyles() {
-  [['_analyseTab', _analyseTab], ['_dataTab', _dataTab]].forEach(([sv, active]) => {
+  [['_analyseTab', _analyseTab], ['_growthTab', _growthTab], ['_dataTab', _dataTab]].forEach(([sv, active]) => {
     document.querySelectorAll(`.merged-stab-bar[data-state="${sv}"] .merged-stab`).forEach(btn => {
       btn.style.background = btn.dataset.tab === active ? '#ffffff' : 'transparent';
       btn.style.color      = btn.dataset.tab === active ? '#0b1220' : '#64748b';
@@ -13478,28 +13578,57 @@ let _finSubTab = 'dash';
 let _finFilterOp = 'tous';
 let _finHistory = []; // undo stack (max 15)
 
+/* Workflows corrigés en août 2026 d'après le suivi réellement tenu par la
+   direction financière. Deux écarts majeurs avec la version précédente :
+
+   - MTN comptait 9 étapes théoriques, le processus réel en compte 6. Signature
+     et renvoi sont un seul geste, de même que la génération et l'envoi de la
+     FNE. Surtout, l'étape appelée « Contresigne MTN » est en fait la
+     validation par le Revenue Assurance — ce n'est pas la même équipe ni le
+     même délai, et c'est là que les dossiers bloquent.
+
+   - OCI comptait une étape « En attente stats OCI » qui n'en est pas une :
+     c'est l'absence de première étape. Une facture non démarrée a désormais
+     un statut vide plutôt qu'une fausse première étape franchie. */
+
 const FIN_STATUS_OCI = [
-  { id:'en_attente_stats',   label:'En attente stats OCI',    color:'#64748b' },
-  { id:'stats_snv_envoyees', label:'Stats SNV envoyees',      color:'#3b82f6' },
-  { id:'stats_oci_recues',   label:'Stats OCI recues',        color:'#8b5cf6' },
-  { id:'recon_ok',           label:'Reconciliation OK',       color:'#10b981' },
-  { id:'fne_generee',        label:'FNE generee',             color:'#f59e0b' },
-  { id:'depot_physique',     label:'Deposee physiquement',    color:'#f97316' },
-  { id:'accuse_recu',        label:'Accuse recu',             color:'#22c55e' },
-  { id:'paye',               label:'Payee',                   color:'#22c55e' },
+  { id:'stats_snv_envoyees', label:'SNV envoie ses stats',        color:'#3b82f6' },
+  { id:'stats_oci_recues',   label:'OCI envoie ses stats',        color:'#8b5cf6' },
+  { id:'recon_ok',           label:'Reconciliation OCI',          color:'#a855f7' },
+  { id:'fne_generee',        label:'SNV genere facture FNE',      color:'#f59e0b' },
+  { id:'depot_physique',     label:'Depot physique FNE',          color:'#f97316' },
+  { id:'accuse_recu',        label:'Accuse de reception OCI',     color:'#14b8a6' },
+  { id:'paye',               label:'Paiement',                    color:'#22c55e' },
 ];
 
 const FIN_STATUS_MTN = [
-  { id:'en_attente_etat',    label:'En attente etat MTN',     color:'#64748b' },
-  { id:'etat_recu',          label:'Etat recu (Adama)',       color:'#3b82f6' },
-  { id:'signe_snv',          label:'Signe par SNV',           color:'#8b5cf6' },
-  { id:'renvoye_mtn',        label:'Renvoye a MTN',           color:'#a855f7' },
-  { id:'contresigne',        label:'Contresigne MTN',         color:'#10b981' },
-  { id:'fne_generee',        label:'FNE generee',             color:'#f59e0b' },
-  { id:'fne_envoyee',        label:'FNE + stats envoyees',    color:'#f97316' },
-  { id:'acquittement',       label:'Acquittement recu',       color:'#22c55e' },
-  { id:'paye',               label:'Payee',                   color:'#22c55e' },
+  { id:'etat_recu',      label:'MTN envoie les etats',            color:'#3b82f6' },
+  { id:'signe_renvoye',  label:'SNV signe et renvoie les etats',  color:'#8b5cf6' },
+  { id:'validation_ra',  label:'Validation RA',                   color:'#a855f7' },
+  { id:'fne_envoyee',    label:'SNV envoie facture FNE + stats',  color:'#f59e0b' },
+  { id:'accuse_recu',    label:'Accuse de reception',             color:'#14b8a6' },
+  { id:'paye',           label:'Paiement',                        color:'#22c55e' },
 ];
+
+/* Correspondance entre les anciens identifiants de statut et les nouveaux.
+   Sans cette table, les factures déjà saisies perdraient leur avancement.
+   Une valeur vide signifie « aucune étape franchie ». */
+const FIN_MIGRATION_STATUT = {
+  OCI: {
+    en_attente_stats:'', stats_snv_envoyees:'stats_snv_envoyees',
+    stats_oci_recues:'stats_oci_recues', recon_ok:'recon_ok',
+    fne_generee:'fne_generee', depot_physique:'depot_physique',
+    accuse_recu:'accuse_recu', paye:'paye'
+  },
+  MTN: {
+    en_attente_etat:'', etat_recu:'etat_recu',
+    signe_snv:'signe_renvoye', renvoye_mtn:'signe_renvoye',
+    contresigne:'validation_ra',
+    fne_generee:'validation_ra',      // FNE générée implique la validation RA acquise
+    fne_envoyee:'fne_envoyee',
+    acquittement:'accuse_recu', paye:'paye'
+  }
+};
 
 /* Pipeline generique — sert de modele pour tout nouvel operateur (Moov etc.) */
 const FIN_STATUS_GENERIC = [
@@ -14497,7 +14626,7 @@ function renderFinance() {
   var el = document.getElementById('financeMain');
   if (!el) return;
   var s = getFinState();
-  var tabs = [['dash','Vue d\'ensemble'],['factures','Factures Op.'],['charges','Charges'],['dettes_cp','Dettes CP'],['personnel','Personnel'],['rapport','Rapport'],['contacts','Contacts']];
+  var tabs = [['dash','Vue d\'ensemble'],['suivi','Factures opérateurs'],['charges','Charges'],['dettes_cp','Dettes CP'],['personnel','Personnel'],['rapport','Rapport'],['contacts','Contacts']];
   var html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:18px;flex-wrap:wrap;gap:10px">'
     + '<div class="fin-subnav">';
   tabs.forEach(function(t) {
@@ -14514,6 +14643,9 @@ function renderFinance() {
   html += '</div>';
 
   if      (_finSubTab==='dash')      html += renderFinDash(s);
+  // 'factures' est l'ancien onglet, fusionné dans 'suivi' en août 2026.
+  // On garde la redirection : d'autres vues du CRM y renvoient encore.
+  else if (_finSubTab==='suivi' || _finSubTab==='factures') html += renderFinSuivi(s);
   else if (_finSubTab==='factures')  html += renderFinFactures(s);
   else if (_finSubTab==='charges')   html += renderFinCharges(s);
   else if (_finSubTab==='dettes_cp') html += renderFinDettesCp(s);
@@ -15137,6 +15269,2577 @@ function renderFinContacts() {
   });
   return html;
 }
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// BIC — SOCLE DE MÉTRIQUES
+// ═══════════════════════════════════════════════════════════════════════════
+// Ajouté en août 2026 après l'analyse des données MTN CIV de juin à août.
+//
+// Trois défauts de l'ancienne section Channels sont corrigés ici :
+//   1. CP_EXT_DATA s'arrête au 14/06/2026 — juillet était invisible.
+//      On lit désormais aussi getH().organic[], qui porte les données fraîches.
+//   2. Flash Foot, premier canal du parc, était absent de CP_EXT_DATA.
+//   3. chGetMetrics lisait cpDay[0] (facturations) et l'affichait comme
+//      « subs/j moy. ». Ce sont des facturations, pas des abonnés. L'index 2,
+//      qui porte les abonnés actifs, n'était jamais lu.
+//
+// Format CP_EXT_DATA : [facturés, revenu_xaf, actifs, nouveaux, désabonnés]
+// Format h[date].organic[] : objet avec les mêmes champs nommés.
+
+const BIC_TVA = 1.18;   // TVA Côte d'Ivoire. Le CRM stocke du TTC, 6D du HT.
+
+// Séries unifiées par canal : historique CP_EXT_DATA + données fraîches du CRM.
+// Retourne { canal: { 'YYYY-MM-DD': {bill, rev, act, nw, un} } }
+function bicSeries() {
+  const out = {};
+  const push = (canal, date, o) => {
+    if (!out[canal]) out[canal] = {};
+    out[canal][date] = o;
+  };
+
+  // 1. Historique (nov. 2025 → mi-juin 2026)
+  if (typeof CP_EXT_DATA !== 'undefined') {
+    Object.keys(CP_EXT_DATA).forEach(canal => {
+      const org = CP_EXT_DATA[canal] && CP_EXT_DATA[canal].organic;
+      if (!org) return;
+      Object.keys(org).forEach(date => {
+        const v = org[date] || [];
+        push(canal, date, { bill:+v[0]||0, rev:+v[1]||0, act:+v[2]||0, nw:+v[3]||0, un:+v[4]||0 });
+      });
+    });
+  }
+
+  // 2. Données fraîches du CRM. Écrasent l'historique en cas de recouvrement :
+  //    la source vivante fait foi.
+  const h = (typeof getH === 'function') ? getH() : {};
+  Object.keys(h).forEach(date => {
+    const arr = (h[date] && h[date].organic) || [];
+    arr.forEach(c => {
+      const canal = bicNormCanal(c.channel_name);
+      if (!canal) return;
+      push(canal, date, {
+        bill:+c.billed_users||0, rev:+c.revenue_xaf||0, act:+c.active_users||0,
+        nw:+c.new_subscribers||0, un:+c.unsubscribers||0,
+        op: (c.gateway||'').split('-')[0] || 'MTN'
+      });
+    });
+  });
+
+  return out;
+}
+
+// Les deux sources n'orthographient pas les canaux pareil.
+function bicNormCanal(nom) {
+  if (!nom) return null;
+  const n = String(nom).trim();
+  const map = {
+    'Albayane':'AL Bayane', 'AL Bayane':'AL Bayane', 'Al Bayane':'AL Bayane',
+    'LIFETV':'Life TV', 'Life TV':'Life TV', 'LifeTV':'Life TV',
+    'Flash Foot Video':'Flash Foot', 'Flash Foot':'Flash Foot',
+    'NabouFall':'Nabou Fall', 'Nabou Fall':'Nabou Fall',
+    '7Info':'7Info', 'Didi B':'Didi B', 'Mc One':'Mc One',
+    'Africa Foot':'Africa Foot', 'Africa News':'Africa News',
+    'Revolution':'Revolution', 'Cordon Bleu':'Cordon Bleu',
+    'English Training':'English Training', 'Serge Beynaud':'Serge Beynaud',
+    'Cuisine':'Cuisine', 'Orange Music':'Orange Music'
+  };
+  return map[n] || n;
+}
+
+// Agrège une série sur une plage de dates et calcule les indicateurs.
+//
+// Le revenu par jour-abonné est la mesure d'efficacité centrale : elle rend
+// comparables des canaux de tailles très différentes, là où le revenu brut
+// favorise mécaniquement les grosses bases dormantes.
+function bicAgg(serie, dates) {
+  let bill=0, rev=0, actJours=0, nw=0, un=0, n=0;
+  const actifs=[];
+  dates.forEach(d => {
+    const v = serie[d];
+    if (!v) return;
+    bill += v.bill; rev += v.rev; actJours += v.act; nw += v.nw; un += v.un;
+    if (v.act > 0) actifs.push(v.act);
+    n++;
+  });
+  const actDeb = actifs.length ? actifs[0] : 0;
+  const actFin = actifs.length ? actifs[actifs.length-1] : 0;
+  return {
+    jours:n, facturations:bill, revenu:rev, revenuHT:rev/BIC_TVA,
+    joursAbonnes:actJours, recrues:nw, sorties:un,
+    actifsDebut:actDeb, actifsFin:actFin,
+    actifsMoy: n ? Math.round(actJours/n) : 0,
+    // Indicateurs dérivés — null plutôt que 0 quand le dénominateur manque,
+    // pour ne pas afficher un zéro qui ressemble à une mesure.
+    revParJourAbo: actJours>0 ? rev/actJours : null,
+    tauxFacturation: actJours>0 ? bill/actJours*100 : null,
+    prixMoyen: bill>0 ? rev/bill : null,
+    revParRecrue: nw>=50 ? rev/nw : null,   // sous 50 recrues le ratio ne décrit rien
+    churnPct: actDeb>0 ? un/actDeb*100 : null,
+    croissanceNette: nw-un
+  };
+}
+
+// ── Règle du cycle de vie ──────────────────────────────────────────────────
+// Régression à retards échelonnés : sorties(J) = Σ b_k × recrues(J-k).
+// Établi en août 2026 sur trois canaux indépendamment : le pic tombe à J+5,
+// soit 1 jour de grâce + 3 jours de suspension après la première tentative
+// de prélèvement à J+1. Life TV tourne sur une configuration plus courte.
+// Résolution par moindres carrés non négatifs (Lawson-Hanson simplifié).
+function bicLagProfile(serie, dates, K) {
+  K = K || 9;
+  const nw=[], un=[];
+  dates.forEach(d => { const v=serie[d]; if(v){ nw.push(v.nw); un.push(v.un); } });
+  if (nw.length < K+6) return null;
+
+  const rows=[];
+  for (let i=K; i<nw.length; i++) {
+    const x=[]; for(let k=1;k<=K;k++) x.push(nw[i-k]);
+    rows.push({x, y:un[i]});
+  }
+  // Descente de gradient projetée sur le quadrant positif — suffisant ici,
+  // les régresseurs sont du même ordre de grandeur.
+  let b = new Array(K).fill(0.05);
+  const lr = 1e-9;
+  for (let it=0; it<4000; it++) {
+    const g = new Array(K).fill(0);
+    rows.forEach(r => {
+      let p=0; for(let k=0;k<K;k++) p += b[k]*r.x[k];
+      const e = p - r.y;
+      for(let k=0;k<K;k++) g[k] += 2*e*r.x[k];
+    });
+    for(let k=0;k<K;k++){ b[k] -= lr*g[k]; if(b[k]<0) b[k]=0; }
+  }
+  let sse=0, sst=0;
+  const my = rows.reduce((s,r)=>s+r.y,0)/rows.length;
+  rows.forEach(r => {
+    let p=0; for(let k=0;k<K;k++) p += b[k]*r.x[k];
+    sse += (r.y-p)**2; sst += (r.y-my)**2;
+  });
+  let pic=0; for(let k=1;k<K;k++) if(b[k]>b[pic]) pic=k;
+  return { coefs:b, pic:pic+1, r2: sst>0 ? 1-sse/sst : 0, n:rows.length };
+}
+
+// Sépare les canaux par opérateur : « Life TV » existe chez MTN et chez OCI,
+// les confondre mélangerait deux réalités très différentes.
+function bicSeriesParOp() {
+  const h = (typeof getH === 'function') ? getH() : {};
+  const out = {};
+  Object.keys(h).forEach(date => {
+    ((h[date] && h[date].organic) || []).forEach(c => {
+      const op = (c.gateway||'').split('-')[0] || 'MTN';
+      const key = op + ' · ' + bicNormCanal(c.channel_name);
+      if (!out[key]) out[key] = {};
+      out[key][date] = { bill:+c.billed_users||0, rev:+c.revenue_xaf||0,
+                         act:+c.active_users||0, nw:+c.new_subscribers||0,
+                         un:+c.unsubscribers||0, op };
+    });
+  });
+  return out;
+}
+
+function bicDatesRecentes(nb) {
+  const h = (typeof getH === 'function') ? getH() : {};
+  return Object.keys(h).sort().slice(-(nb||30));
+}
+
+// ── Formatage ──────────────────────────────────────────────────────────────
+const bicN  = (v,d)=> v==null ? '—' : Number(v).toLocaleString('fr-FR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0});
+const bicF  = v => v==null ? '—' : bicN(v)+' F';
+const bicP  = (v,d)=> v==null ? '—' : Number(v).toFixed(d==null?2:d)+' %';
+const bicUSD= v => v==null ? '—' : '$ '+bicN(v/600);
+
+function bicCarte(label, valeur, sous, couleur, note) {
+  return '<div class="card" style="border-top:2px solid '+(couleur||'#4f5bd5')+'">'
+    + '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'+label+'</div>'
+    + '<div style="font-size:17px;font-weight:700;color:#0f172a;margin-bottom:3px">'+valeur+'</div>'
+    + '<div style="font-size:10px;color:#94a3b8">'+(sous||'')+'</div>'
+    + (note ? '<div style="font-size:9px;color:#94a3b8;font-style:italic;margin-top:6px;line-height:1.4">'+note+'</div>' : '')
+    + '</div>';
+}
+
+function bicEncart(titre, texte, couleur) {
+  couleur = couleur || '#4f5bd5';
+  return '<div style="background:#f8f9ff;border:1px solid #e2e6fb;border-left:3px solid '+couleur
+    + ';border-radius:0 6px 6px 0;padding:10px 14px;margin:12px 0;font-size:11px;line-height:1.6;color:#475569">'
+    + '<strong style="color:#0f172a">'+titre+'</strong> '+texte+'</div>';
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHANNELS — Efficacité
+// ═══════════════════════════════════════════════════════════════════════════
+// L'ancienne vue classait par revenu brut, ce qui met mécaniquement en tête
+// les grosses bases dormantes. Le revenu par jour-abonné mesure l'efficacité
+// réelle et rend comparables des canaux de tailles très différentes.
+function bicRenderChEfficacite(nbJours) {
+  const S = bicSeriesParOp();
+  const dates = bicDatesRecentes(nbJours||30);
+  if (!dates.length) return '<div class="alert alert-info">Pas de données journalières chargées.</div>';
+
+  const lignes = Object.keys(S).map(k => ({k, a: bicAgg(S[k], dates)}))
+    .filter(x => x.a.joursAbonnes > 0)
+    .sort((a,b) => (b.a.revParJourAbo||0) - (a.a.revParJourAbo||0));
+
+  const tot = lignes.reduce((s,x)=>({rev:s.rev+x.a.revenu, ja:s.ja+x.a.joursAbonnes,
+                                     bill:s.bill+x.a.facturations, nw:s.nw+x.a.recrues}),
+                            {rev:0,ja:0,bill:0,nw:0});
+
+  let h = '';
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
+  h += bicCarte('Revenu total TTC', bicUSD(tot.rev), bicF(tot.rev), '#22c55e',
+                'Le CRM stocke du TTC. HT = ÷1,18.');
+  h += bicCarte('Revenu / jour-abonné', bicN(tot.ja? tot.rev/tot.ja : null, 3)+' XAF',
+                'moyenne pondérée du parc', '#4f5bd5',
+                'Mesure d\'efficacité : comparable entre canaux de tailles différentes.');
+  h += bicCarte('Taux de facturation', bicP(tot.ja? tot.bill/tot.ja*100 : null, 3)+' /jour',
+                bicN(tot.bill)+' facturations', '#f59e0b',
+                'Part des abonnés actifs prélevés chaque jour.');
+  h += bicCarte('Prix moyen encaissé', bicF(tot.bill? tot.rev/tot.bill : null),
+                'sur ' + bicN(tot.bill) + ' prélèvements', '#ef4444',
+                'Très en dessous du tarif affiché : les soldes faibles tombent sur les paliers de repli.');
+  h += '</div>';
+
+  h += bicEncart('Lecture.', 'Le classement se fait par revenu par jour-abonné et non par revenu brut. '
+    + 'Un canal à grosse base mais faible rendement est une base dormante : il pèse dans les totaux sans rien rapporter. '
+    + 'Le revenu par recrue est masqué sous 50 recrutements, en dessous il ne décrit rien.');
+
+  h += '<div class="card" style="padding:0;overflow:hidden">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h += '<thead><tr style="background:#f8fafc">'
+    + ['Canal','Revenu TTC','XAF/j-abo','Taux fact.','Prix moyen','Actifs moy.','Recrues','Sorties','Net','Rev/recrue']
+      .map((t,i)=>'<th style="padding:8px 10px;text-align:'+(i?'right':'left')+';font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;font-weight:600">'+t+'</th>').join('')
+    + '</tr></thead><tbody>';
+
+  lignes.forEach(({k,a}) => {
+    const net = a.croissanceNette;
+    const cNet = net>0?'#22c55e':(net<0?'#ef4444':'#64748b');
+    // Repère visuel : au-dessus de 0,5 XAF/jour-abonné le canal est productif,
+    // en dessous de 0,1 il est dormant. Bornes tirées de l'écart observé entre
+    // Flash Foot (1,12) et Mc One (0,02).
+    const eff = a.revParJourAbo;
+    const cEff = eff==null?'#64748b':(eff>=0.5?'#22c55e':(eff>=0.1?'#f59e0b':'#ef4444'));
+    h += '<tr style="border-top:1px solid #f1f5f9">'
+      + '<td style="padding:7px 10px;font-weight:600;color:#0f172a">'+k+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicF(a.revenu)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+cEff+'">'+bicN(eff,3)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicP(a.tauxFacturation,3)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicF(a.prixMoyen)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.actifsMoy)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.recrues)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.sorties)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+cNet+'">'+(net>0?'+':'')+bicN(net)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicF(a.revParRecrue)+'</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div style="font-size:10px;color:#94a3b8;margin-top:8px">Période : '
+     + dates[0]+' → '+dates[dates.length-1]+' ('+dates.length+' jours). '
+     + 'Vert : ≥ 0,5 XAF/jour-abonné · orange : 0,1 à 0,5 · rouge : &lt; 0,1 (base dormante).</div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CHANNELS — Cycle de vie
+// ═══════════════════════════════════════════════════════════════════════════
+function bicRenderChCycle(nbJours) {
+  const S = bicSeriesParOp();
+  const dates = bicDatesRecentes(nbJours||60);
+  const cibles = Object.keys(S).filter(k => bicAgg(S[k],dates).recrues >= 300);
+  if (!cibles.length) return '<div class="alert alert-info">Pas assez de recrutements sur la période pour analyser le cycle de vie.</div>';
+
+  let h = bicEncart('Règle MTN.', 'Première tentative de prélèvement à J+1 après l\'inscription. '
+    + 'En cas d\'échec : 1 jour de grâce, puis 3 jours de suspension, puis désabonnement automatique à J+5. '
+    + 'Le tableau ci-dessous retrouve cette règle dans les données, sans la supposer : on régresse les sorties '
+    + 'de chaque jour sur les recrutements des 9 jours précédents. Un pic net sur un seul décalage signe une '
+    + 'règle automatique, pas un comportement d\'abonné.');
+
+  h += '<div class="card" style="padding:0;overflow:hidden;margin-top:12px">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f8fafc">'
+    + '<th style="padding:8px 10px;text-align:left;font-size:9px;color:#64748b;text-transform:uppercase">Canal</th>'
+    + '<th style="padding:8px 10px;text-align:center;font-size:9px;color:#64748b;text-transform:uppercase">Délai de sortie</th>'
+    + '<th style="padding:8px 10px;text-align:right;font-size:9px;color:#64748b;text-transform:uppercase">Part du lot</th>'
+    + '<th style="padding:8px 10px;text-align:right;font-size:9px;color:#64748b;text-transform:uppercase">Qualité (R²)</th>'
+    + '<th style="padding:8px 10px;text-align:left;font-size:9px;color:#64748b;text-transform:uppercase">Profil J+1 → J+9</th>'
+    + '</tr></thead><tbody>';
+
+  cibles.forEach(k => {
+    const ds = dates.filter(d => S[k][d]);
+    const p = bicLagProfile(S[k], ds, 9);
+    if (!p) return;
+    const part = p.coefs[p.pic-1]*100;
+    // J+5 = configuration standard, tout autre délai = configuration différente.
+    const conforme = p.pic === 5;
+    const c = conforme ? '#22c55e' : '#f59e0b';
+    const barres = p.coefs.map((v,i) => {
+      const ht = Math.max(2, Math.round(v*100*0.42));
+      return '<div title="J+'+(i+1)+' : '+(v*100).toFixed(0)+' %" style="display:inline-block;width:9px;height:'
+        + ht+'px;background:'+(i===p.pic-1?c:'#cbd5e1')+';margin-right:2px;vertical-align:bottom;border-radius:1px"></div>';
+    }).join('');
+    h += '<tr style="border-top:1px solid #f1f5f9">'
+      + '<td style="padding:7px 10px;font-weight:600;color:#0f172a">'+k+'</td>'
+      + '<td style="padding:7px 10px;text-align:center"><span style="background:'+c
+        + ';color:#fff;padding:2px 9px;border-radius:10px;font-size:10px;font-weight:700">J+'+p.pic+'</span>'
+        + (conforme?'':'<div style="font-size:9px;color:#f59e0b;margin-top:3px">configuration différente</div>')+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700">'+part.toFixed(0)+' %</td>'
+      + '<td style="padding:7px 10px;text-align:right;color:'+(p.r2>0.7?'#22c55e':'#f59e0b')+'">'+p.r2.toFixed(2)+'</td>'
+      + '<td style="padding:7px 10px;height:46px">'+barres+'</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+
+  h += bicEncart('À quoi ça sert.', 'Ce délai est un capteur de configuration. S\'il passe de J+5 à autre chose, '
+    + 'c\'est que MTN a modifié un paramètre — et sans cet écran on ne le saurait pas. '
+    + 'Life TV tourne déjà sur une fenêtre plus courte, ce qui la prive de deux jours de rattrapage.', '#f59e0b');
+
+  // Estimation de la survie par cohorte, à partir du profil de sortie.
+  h += '<div style="margin-top:16px"><div style="font-size:12px;font-weight:700;color:#0f172a;margin-bottom:8px">Devenir d\'un lot de 100 recrues</div>';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(210px,1fr));gap:10px">';
+  cibles.slice(0,6).forEach(k => {
+    const ds = dates.filter(d => S[k][d]);
+    const p = bicLagProfile(S[k], ds, 9);
+    if (!p) return;
+    const sortis = Math.min(100, p.coefs.reduce((s,v)=>s+v,0)*100);
+    const restants = Math.max(0, 100-sortis);
+    h += '<div class="card"><div style="font-size:11px;font-weight:700;color:#0f172a;margin-bottom:8px">'+k+'</div>'
+      + '<div style="display:flex;height:22px;border-radius:4px;overflow:hidden;margin-bottom:6px">'
+      + '<div style="width:'+sortis+'%;background:#ef4444"></div><div style="width:'+restants+'%;background:#22c55e"></div></div>'
+      + '<div style="font-size:10px;color:#64748b">'+sortis.toFixed(0)+' sortis en 9 jours · <strong style="color:#22c55e">'
+      + restants.toFixed(0)+' survivants</strong></div></div>';
+  });
+  h += '</div></div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GROWTH — Décomposition en moteurs
+// ═══════════════════════════════════════════════════════════════════════════
+// L'ancienne vue listait des deltas métrique par métrique : elle montrait que
+// ça monte ou que ça descend, jamais pourquoi. Ici on décompose la variation
+// de revenu en trois moteurs, dont la somme reconstitue l'écart total.
+//
+//   revenu = jours-abonnés × taux de facturation × prix moyen
+//
+// En passant aux variations, chaque facteur porte sa part de responsabilité.
+function bicRenderGrowthMoteurs(nbJours) {
+  const S = bicSeriesParOp();
+  const toutes = bicDatesRecentes(400);
+  const n = nbJours || 14;
+  if (toutes.length < n*2) return '<div class="alert alert-info">Il faut au moins '+(n*2)+' jours de données pour comparer deux périodes.</div>';
+
+  const cour = toutes.slice(-n), prec = toutes.slice(-(n*2), -n);
+  const agg = ds => Object.keys(S).reduce((s,k) => {
+    const a = bicAgg(S[k], ds);
+    s.rev+=a.revenu; s.ja+=a.joursAbonnes; s.bill+=a.facturations;
+    s.nw+=a.recrues; s.un+=a.sorties; return s;
+  }, {rev:0,ja:0,bill:0,nw:0,un:0});
+
+  const C = agg(cour), P = agg(prec);
+  const tauxC = C.ja? C.bill/C.ja : 0, tauxP = P.ja? P.bill/P.ja : 0;
+  const prixC = C.bill? C.rev/C.bill : 0, prixP = P.bill? P.rev/P.bill : 0;
+
+  // Décomposition séquentielle : on fait varier un facteur à la fois, en
+  // gardant les précédents à leur nouvelle valeur. La somme des trois effets
+  // reconstitue exactement l'écart total, sans résidu.
+  const effetVolume = (C.ja - P.ja) * tauxP * prixP;
+  const effetTaux   = C.ja * (tauxC - tauxP) * prixP;
+  const effetPrix   = C.ja * tauxC * (prixC - prixP);
+  const ecart = C.rev - P.rev;
+
+  const bloc = (titre, val, pct, coul, expl) => {
+    const signe = val>=0?'+':'';
+    return '<div class="card" style="border-left:3px solid '+coul+'">'
+      + '<div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:6px">'+titre+'</div>'
+      + '<div style="font-size:19px;font-weight:700;color:'+coul+';margin-bottom:2px">'+signe+bicN(val)+' F</div>'
+      + '<div style="font-size:10px;color:#94a3b8;margin-bottom:7px">'+signe+pct.toFixed(0)+' % de l\'écart</div>'
+      + '<div style="font-size:10px;color:#64748b;line-height:1.5;font-style:italic">'+expl+'</div></div>';
+  };
+  const pc = v => ecart!==0 ? v/Math.abs(ecart)*100 : 0;
+
+  let h = bicEncart('Comment lire.', 'Le revenu se décompose en trois facteurs multiplicatifs : '
+    + '<em>jours-abonnés × taux de facturation × prix moyen</em>. Chaque bloc ci-dessous isole la part de '
+    + 'l\'écart imputable à un seul de ces facteurs, les deux autres étant tenus constants. '
+    + 'La somme des trois reconstitue exactement l\'écart total.');
+
+  h += '<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin:14px 0">';
+  h += bloc('Moteur volume', effetVolume, pc(effetVolume), effetVolume>=0?'#22c55e':'#ef4444',
+            'Ce que rapporte la variation de la base d\'abonnés, à comportement de facturation inchangé.');
+  h += bloc('Moteur collecte', effetTaux, pc(effetTaux), effetTaux>=0?'#22c55e':'#ef4444',
+            'Ce que rapporte la variation de la fréquence de prélèvement. Dépend surtout du solde des abonnés.');
+  h += bloc('Moteur prix', effetPrix, pc(effetPrix), effetPrix>=0?'#22c55e':'#ef4444',
+            'Ce que rapporte la variation du montant moyen encaissé. Baisse quand les paliers de repli dominent.');
+  h += '</div>';
+
+  h += '<div class="card" style="margin-bottom:12px"><div style="font-size:11px;color:#64748b;margin-bottom:8px">'
+    + 'Contrôle de la décomposition</div>'
+    + '<div style="font-size:12px;color:#0f172a">Somme des trois moteurs : <strong>'
+    + bicN(effetVolume+effetTaux+effetPrix)+' F</strong> · écart réellement observé : <strong>'
+    + bicN(ecart)+' F</strong></div></div>';
+
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:10px">';
+  const cmp = (lib, c, p, fmt, dec) => {
+    const ev = p? (c-p)/p*100 : 0;
+    const col = ev>0?'#22c55e':(ev<0?'#ef4444':'#64748b');
+    return bicCarte(lib, fmt(c,dec), '<span style="color:'+col+';font-weight:700">'+(ev>0?'▲ +':'▼ ')
+      + ev.toFixed(1)+' %</span> vs période précédente ('+fmt(p,dec)+')', col);
+  };
+  h += cmp('Revenu TTC', C.rev, P.rev, bicF);
+  h += cmp('Jours-abonnés', C.ja, P.ja, bicN);
+  h += cmp('Taux de facturation', tauxC*100, tauxP*100, (v,d)=>bicP(v,3));
+  h += cmp('Prix moyen encaissé', prixC, prixP, bicF);
+  h += cmp('Recrutements', C.nw, P.nw, bicN);
+  h += cmp('Sorties', C.un, P.un, bicN);
+  h += '</div>';
+
+  h += '<div style="font-size:10px;color:#94a3b8;margin-top:10px">Période courante : '+cour[0]+' → '
+     + cour[cour.length-1]+' · période de comparaison : '+prec[0]+' → '+prec[prec.length-1]+'</div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// GROWTH — Qualité du recrutement
+// ═══════════════════════════════════════════════════════════════════════════
+// Recruter beaucoup ne sert à rien si les recrues ne se facturent pas. Cet
+// écran mesure ce que rapporte réellement le recrutement, canal par canal.
+function bicRenderGrowthQualite(nbJours) {
+  const S = bicSeriesParOp();
+  const dates = bicDatesRecentes(nbJours||30);
+  const lignes = Object.keys(S).map(k => ({k, a:bicAgg(S[k], dates)}))
+    .filter(x => x.a.recrues >= 50)
+    .sort((a,b) => b.a.recrues - a.a.recrues);
+  if (!lignes.length) return '<div class="alert alert-info">Aucun canal avec au moins 50 recrutements sur la période.</div>';
+
+  const T = lignes.reduce((s,x)=>({nw:s.nw+x.a.recrues, un:s.un+x.a.sorties, rev:s.rev+x.a.revenu}),{nw:0,un:0,rev:0});
+
+  let h = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
+  h += bicCarte('Recrutements', bicN(T.nw), 'sur '+dates.length+' jours', '#4f5bd5');
+  h += bicCarte('Sorties', bicN(T.un), (T.nw? (T.un/T.nw*100).toFixed(0):'—')+' % du recrutement', '#ef4444',
+                'Deux tiers des recrues non facturées sortent au 5e jour.');
+  h += bicCarte('Croissance nette', (T.nw-T.un>0?'+':'')+bicN(T.nw-T.un), 'abonnés gagnés',
+                (T.nw-T.un)>0?'#22c55e':'#ef4444');
+  h += bicCarte('Revenu par recrue', bicF(T.nw? T.rev/T.nw : null), 'TTC, toutes chaînes', '#f59e0b',
+                'Ordre de grandeur observé : 20 à 25 F. À ne pas confondre avec le tarif affiché.');
+  h += '</div>';
+
+  h += bicEncart('Le vrai goulot.', 'Sur les exports MSISDN de fin juillet, seules <strong>4 à 6 % des recrues</strong> '
+    + 'sont facturées au moins une fois. Le problème n\'est pas la rétention mais la première collecte : '
+    + 'un abonné jamais prélevé sort à 67 %, un abonné prélevé une fois sort à 23-53 % selon le canal.', '#ef4444');
+
+  h += '<div class="card" style="padding:0;overflow:hidden">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f8fafc">'
+    + ['Canal','Recrues','Sorties','Net','Rétention brute','Revenu/recrue','Rendement']
+      .map((t,i)=>'<th style="padding:8px 10px;text-align:'+(i?'right':'left')+';font-size:9px;color:#64748b;text-transform:uppercase;font-weight:600">'+t+'</th>').join('')
+    + '</tr></thead><tbody>';
+  lignes.forEach(({k,a}) => {
+    const ret = a.recrues? (1-a.sorties/a.recrues)*100 : 0;
+    const cRet = ret>=40?'#22c55e':(ret>=15?'#f59e0b':'#ef4444');
+    const net = a.croissanceNette;
+    // Rendement : barre proportionnelle au revenu par recrue, plafonnée à 50 F
+    const rr = a.revParRecrue||0;
+    const larg = Math.min(100, rr/50*100);
+    h += '<tr style="border-top:1px solid #f1f5f9">'
+      + '<td style="padding:7px 10px;font-weight:600;color:#0f172a">'+k+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.recrues)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.sorties)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+(net>0?'#22c55e':'#ef4444')+'">'+(net>0?'+':'')+bicN(net)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+cRet+'">'+ret.toFixed(0)+' %</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicF(a.revParRecrue)+'</td>'
+      + '<td style="padding:7px 10px;width:110px"><div style="background:#f1f5f9;border-radius:3px;height:7px">'
+        + '<div style="width:'+larg+'%;background:#4f5bd5;height:7px;border-radius:3px"></div></div></td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div style="font-size:10px;color:#94a3b8;margin-top:8px">Rétention brute = 1 − sorties/recrues sur la période. '
+     + 'Approximation : les sorties d\'une période peuvent concerner des recrues antérieures. '
+     + 'La mesure exacte demande des cohortes datées.</div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYSE — Monétisation réelle
+// ═══════════════════════════════════════════════════════════════════════════
+// Le tarif affiché ne décrit plus ce qui rentre. Depuis le lancement des
+// campagnes Balance+ le 28 juin 2026, le prix moyen encaissé est tombé de
+// 243 F à 92 F : les abonnés à faible solde sont prélevés sur les paliers de
+// repli plutôt qu'au tarif plein.
+function bicRenderAnMonetisation(nbJours) {
+  const S = bicSeriesParOp();
+  const dates = bicDatesRecentes(nbJours||30);
+  const lignes = Object.keys(S).map(k => ({k, a:bicAgg(S[k], dates)}))
+    .filter(x => x.a.facturations >= 20)
+    .sort((a,b) => (a.a.prixMoyen||0) - (b.a.prixMoyen||0));
+
+  const T = lignes.reduce((s,x)=>({rev:s.rev+x.a.revenu, bill:s.bill+x.a.facturations}),{rev:0,bill:0});
+  const prixMoy = T.bill ? T.rev/T.bill : null;
+  const TARIF_AFFICHE = 300;   // tarif catalogue dominant, en F/semaine
+
+  let h = '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
+  h += bicCarte('Prix moyen encaissé', bicF(prixMoy), 'sur '+bicN(T.bill)+' prélèvements', '#ef4444');
+  h += bicCarte('Tarif affiché', bicF(TARIF_AFFICHE), 'catalogue hebdomadaire', '#64748b');
+  h += bicCarte('Écart au catalogue', prixMoy? ((1-prixMoy/TARIF_AFFICHE)*100).toFixed(0)+' %' : '—',
+                'de manque à gagner par prélèvement', '#f59e0b',
+                'Raisonner en « 300 F/semaine » fausse tout calcul de revenu.');
+  h += bicCarte('Revenu HT', bicF(T.rev/BIC_TVA), bicF(T.rev)+' TTC', '#22c55e',
+                'Le CRM stocke du TTC, les rapports MTN du HT. Rapport 1,18.');
+  h += '</div>';
+
+  h += bicEncart('Pourquoi c\'est bas.', 'Le service applique des paliers de repli quand le solde ne couvre pas '
+    + 'le tarif plein : 150 F pour 4 jours, puis 60 F par jour, jusqu\'à 10 F. Sur les rapports MTN de début août, '
+    + '<strong>73 % des prélèvements réussis passent par un palier de repli</strong> et le palier 10 F représente '
+    + 'à lui seul 45 % des transactions. Un abonné prélevé 10 F reste un abonné vivant — mais le revenu par '
+    + 'prélèvement n\'a plus rien à voir avec le tarif catalogue.', '#f59e0b');
+
+  h += '<div class="card" style="padding:0;overflow:hidden">';
+  h += '<table style="width:100%;border-collapse:collapse;font-size:11px"><thead><tr style="background:#f8fafc">'
+    + ['Canal','Prélèvements','Revenu TTC','Prix moyen','Écart au catalogue','Positionnement']
+      .map((t,i)=>'<th style="padding:8px 10px;text-align:'+(i?'right':'left')+';font-size:9px;color:#64748b;text-transform:uppercase;font-weight:600">'+t+'</th>').join('')
+    + '</tr></thead><tbody>';
+  lignes.forEach(({k,a}) => {
+    const p = a.prixMoyen || 0;
+    const ecart = (1 - p/TARIF_AFFICHE)*100;
+    const c = p>=200?'#22c55e':(p>=100?'#f59e0b':'#ef4444');
+    const larg = Math.min(100, p/TARIF_AFFICHE*100);
+    h += '<tr style="border-top:1px solid #f1f5f9">'
+      + '<td style="padding:7px 10px;font-weight:600;color:#0f172a">'+k+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicN(a.facturations)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+bicF(a.revenu)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right;font-weight:700;color:'+c+'">'+bicF(p)+'</td>'
+      + '<td style="padding:7px 10px;text-align:right">'+ecart.toFixed(0)+' %</td>'
+      + '<td style="padding:7px 10px;width:130px"><div style="background:#f1f5f9;border-radius:3px;height:7px">'
+        + '<div style="width:'+larg+'%;background:'+c+';height:7px;border-radius:3px"></div></div></td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div>';
+  h += '<div style="font-size:10px;color:#94a3b8;margin-top:8px">Vert : ≥ 200 F, proche du tarif plein · '
+     + 'orange : 100 à 200 F · rouge : &lt; 100 F, l\'essentiel des prélèvements passe par les paliers de repli.</div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYSE — Qualité des données
+// ═══════════════════════════════════════════════════════════════════════════
+// Si un contrôle est rouge, les chiffres des autres sections ne sont pas
+// exploitables. Ces contrôles n'existaient pas : c'est en les écrivant qu'on
+// a découvert que le CRM stocke du TTC et les rapports MTN du HT.
+function bicRenderAnQualite() {
+  const h_ = (typeof getH === 'function') ? getH() : {};
+  const dates = Object.keys(h_).sort();
+  const res = [];
+  const add = (niv, titre, constat, detail, seuil) => res.push({niv,titre,constat,detail,seuil});
+
+  // 1. Fraîcheur
+  if (!dates.length) {
+    add('ROUGE','Fraîcheur des données','Aucune donnée journalière chargée.','','—');
+  } else {
+    const derniere = dates[dates.length-1];
+    const age = Math.round((Date.now() - new Date(derniere+'T00:00:00Z').getTime())/86400000);
+    add(age<=2?'VERT':(age<=5?'ORANGE':'ROUGE'), 'Fraîcheur des données',
+        age+' jour(s) de retard — dernière donnée au '+derniere,
+        '', 'alerte au-delà de 2 jours');
+  }
+
+  // 2. Jours manquants
+  if (dates.length > 1) {
+    const d0 = new Date(dates[0]+'T00:00:00Z'), d1 = new Date(dates[dates.length-1]+'T00:00:00Z');
+    const set = new Set(dates); const manq = [];
+    for (let t=d0.getTime(); t<=d1.getTime(); t+=86400000) {
+      const s = new Date(t).toISOString().slice(0,10);
+      if (!set.has(s)) manq.push(s);
+    }
+    add(manq.length===0?'VERT':(manq.length<=3?'ORANGE':'ROUGE'), 'Continuité de la série',
+        manq.length+' jour(s) manquant(s) entre '+dates[0]+' et '+dates[dates.length-1],
+        manq.length? manq.slice(0,12).join(', ')+(manq.length>12?' …':'') : 'série continue',
+        'un trou non détecté fausse toute moyenne journalière');
+  }
+
+  // 3. Cohérence interne : le revenu implique-t-il un prix plausible ?
+  const S = bicSeriesParOp();
+  const recentes = bicDatesRecentes(30);
+  const suspects = [];
+  Object.keys(S).forEach(k => {
+    const a = bicAgg(S[k], recentes);
+    if (a.facturations >= 20 && a.prixMoyen != null && (a.prixMoyen < 5 || a.prixMoyen > 1000)) {
+      suspects.push(k+' : '+bicF(a.prixMoyen)+'/prélèvement');
+    }
+  });
+  add(suspects.length?'ORANGE':'VERT', 'Prix unitaires plausibles',
+      suspects.length+' canal(aux) hors de la fourchette 5–1 000 F',
+      suspects.join(' · '), 'les paliers vont de 10 F à 300 F');
+
+  // 4. Base fiscale
+  add('VERT', 'Base fiscale des montants',
+      'Le CRM stocke des montants TTC.',
+      'Établi en août 2026 : le rapport entre les revenus du CRM et ceux des rapports MTN vaut 1,1805 sur '
+      + 'juillet, soit exactement la TVA ivoirienne, et reste entre 1,15 et 1,25 sur chacun des huit canaux '
+      + 'actifs. Toute comparaison avec un chiffre MTN doit passer par ÷ 1,18.',
+      'contrôle documentaire');
+
+  // 5. Canaux sans activité récente
+  const morts = Object.keys(S).filter(k => {
+    const a = bicAgg(S[k], recentes);
+    return a.actifsMoy > 500 && a.facturations === 0;
+  });
+  add(morts.length?'ORANGE':'VERT', 'Bases dormantes',
+      morts.length+' canal(aux) avec une base > 500 abonnés et aucun prélèvement sur 30 jours',
+      morts.join(' · '), 'une base qui ne facture plus doit être arrêtée ou relancée');
+
+  const COUL = {ROUGE:'#ef4444', ORANGE:'#f59e0b', VERT:'#22c55e'};
+  const cnt = {ROUGE:0,ORANGE:0,VERT:0}; res.forEach(r => cnt[r.niv]++);
+
+  let h = '<div style="display:flex;gap:8px;margin-bottom:14px">';
+  [['ROUGE','bloquant'],['ORANGE','à surveiller'],['VERT','conforme']].forEach(([n,l]) => {
+    if (!cnt[n]) return;
+    h += '<div style="background:'+COUL[n]+';color:#fff;padding:6px 13px;border-radius:6px;font-size:11px;font-weight:700">'
+       + cnt[n]+' '+l+'</div>';
+  });
+  h += '</div>';
+
+  h += bicEncart('Pourquoi cet écran passe en premier.', 'On a découvert une duplication des campagnes d\'un facteur 7,3 '
+    + 'et 139 900 faux recrutements parce que les chiffres paraissaient bizarres, pas parce que l\'outil l\'avait signalé. '
+    + 'Ces contrôles servent à ce que ça ne se reproduise pas.');
+
+  const ordre = {ROUGE:0, ORANGE:1, VERT:2};
+  res.sort((a,b)=>ordre[a.niv]-ordre[b.niv]).forEach(r => {
+    h += '<div style="background:#fff;border:1px solid #e2e8f0;border-left:3px solid '+COUL[r.niv]
+      + ';border-radius:0 6px 6px 0;padding:11px 15px;margin:7px 0">'
+      + '<div style="font-size:12px;font-weight:700;color:#0f172a">'
+      + '<span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:'+COUL[r.niv]+';margin-right:7px"></span>'
+      + r.titre+'</div>'
+      + '<div style="font-size:11px;color:#334155;margin-top:3px">'+r.constat+'</div>'
+      + (r.detail? '<div style="font-size:10px;color:#64748b;margin-top:5px;line-height:1.6">'+r.detail+'</div>':'')
+      + (r.seuil? '<div style="font-size:9px;color:#94a3b8;margin-top:4px">'+r.seuil+'</div>':'')
+      + '</div>';
+  });
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYSE — Console IA
+// ═══════════════════════════════════════════════════════════════════════════
+// Dialogue avec un modèle Anthropic, alimenté par un contexte construit
+// automatiquement depuis les données du CRM.
+//
+// Sécurité : la clé API est saisie par l'utilisateur dans l'interface et
+// stockée dans le localStorage du navigateur. Elle n'apparaît jamais dans le
+// code, n'est jamais transmise ailleurs qu'à api.anthropic.com, et n'est pas
+// incluse dans les sauvegardes exportées.
+
+const BIC_IA_KEY   = 'snv_bic_ia_v1';
+const BIC_IA_HIST  = 'snv_bic_ia_hist_v1';
+const BIC_IA_MODELES = [
+  ['claude-sonnet-5', 'Sonnet 5 — équilibré'],
+  ['claude-opus-5',   'Opus 5 — raisonnement profond'],
+  ['claude-haiku-4-5-20251001', 'Haiku 4.5 — rapide et économique']
+];
+
+function bicIaConf() {
+  var c = {};
+  try { c = JSON.parse(localStorage.getItem(BIC_IA_KEY) || '{}'); } catch(e) { c = {}; }
+  // Le CRM stocke déjà une clé Anthropic sous 'snv_ai_cfg' pour l'analyse de notes.
+  // On la reprend plutôt que de faire saisir la même clé deux fois.
+  if (!c.cle) {
+    try {
+      var partagee = JSON.parse(localStorage.getItem('snv_ai_cfg') || 'null');
+      if (partagee && partagee.key) { c.cle = partagee.key; c.heritee = true; }
+    } catch(e) {}
+  }
+  return c;
+}
+function bicIaSetConf(c) { localStorage.setItem(BIC_IA_KEY, JSON.stringify(c)); }
+function bicIaHist() {
+  try { return JSON.parse(localStorage.getItem(BIC_IA_HIST) || '[]'); } catch(e) { return []; }
+}
+function bicIaSetHist(h) { localStorage.setItem(BIC_IA_HIST, JSON.stringify(h.slice(-40))); }
+
+// Contexte transmis au modèle. Volontairement agrégé : envoyer les données
+// brutes coûterait cher en jetons sans rien apporter, le modèle ne recalcule
+// pas mieux que les fonctions du CRM. On lui donne des chiffres déjà calculés,
+// les sources qui les portent, et surtout le niveau de confiance de chacun.
+function bicIaContexte() {
+  const L = [];
+  const n = (v,d) => v==null ? 'n/d' : Number(v).toFixed(d==null?0:d);
+
+  L.push('=== CONTEXTE BIC — STARNEWS MOBILE ===');
+  L.push('Généré le ' + new Date().toISOString().slice(0,10));
+  L.push('Services de contenu mobile par abonnement, gateways MTN et Orange Côte d\'Ivoire.');
+  L.push('');
+  L.push('RÈGLES DE LECTURE, à appliquer systématiquement :');
+  L.push('- Les montants du CRM sont en XAF TTC. Diviser par 1,18 pour du HT (TVA CIV 18 %).');
+  L.push('- Les rapports MTN/6D sont en HT.');
+  L.push('- « Facturations » = événements de prélèvement, PAS des abonnés uniques.');
+  L.push('- Le tarif affiché (295 ou 300 F/semaine) ne décrit pas ce qui est encaissé.');
+
+  // ── Vue courante ────────────────────────────────────────────────────────
+  try {
+    const pl = anPlages(), C = anAgg(pl.cur), P = anAgg(pl.prev);
+    L.push('');
+    L.push('=== VUE ACTUELLEMENT AFFICHÉE PAR L\'UTILISATEUR ===');
+    L.push('Filtres : période ' + _anF.periode + ' · opérateur ' + _anF.op + ' · type ' + _anF.type);
+    L.push('Plage : ' + pl.cur[0] + ' → ' + pl.cur[pl.cur.length-1] + ' (' + pl.cur.length + ' jours)');
+    L.push('Comparée à : ' + (pl.prev.length ? pl.prev[0] + ' → ' + pl.prev[pl.prev.length-1] : 'aucune période précédente'));
+    L.push('');
+    L.push('indicateur | période courante | période précédente');
+    L.push('Revenu TTC | ' + n(C.rev) + ' | ' + n(P.rev));
+    L.push('Revenu par jour-abonné | ' + n(C.revParJourAbo,3) + ' | ' + n(P.revParJourAbo,3));
+    L.push('Prix moyen encaissé | ' + n(C.prixMoyen,1) + ' F | ' + n(P.prixMoyen,1) + ' F');
+    L.push('Billing rate | ' + n(C.billingRate,3) + ' %/jour | ' + n(P.billingRate,3) + ' %/jour');
+    L.push('Abonnés actifs moyens | ' + n(C.actifsMoy) + ' | ' + n(P.actifsMoy));
+    L.push('Recrutements | ' + n(C.nw) + ' | ' + n(P.nw));
+    L.push('Sorties | ' + n(C.un) + ' | ' + n(P.un));
+    L.push('Croissance nette | ' + n(C.net) + ' | ' + n(P.net));
+    L.push('Rotation du parc | ' + n(C.rotation,0) + ' % | ' + n(P.rotation,0) + ' %');
+    L.push('Durée de vie moyenne | ' + n(C.dureeVie,1) + ' j | ' + n(P.dureeVie,1) + ' j');
+
+    L.push('');
+    L.push('DÉTAIL PAR CANAL sur la période courante');
+    L.push('canal | revenu TTC | XAF/jour-abonné | billing rate | prix moyen | actifs moy | recrues | sorties');
+    Object.keys(C.parCanal).map(k => ({k, v:C.parCanal[k]}))
+      .filter(x => x.v.act > 0).sort((a,b) => b.v.rev - a.v.rev)
+      .forEach(x => {
+        const v = x.v;
+        L.push(v.op + ' ' + x.k + ' | ' + n(v.rev) + ' | ' + n(v.act?v.rev/v.act:null,3)
+             + ' | ' + n(v.act?v.bill/v.act*100:null,3) + ' % | ' + n(v.bill?v.rev/v.bill:null,1)
+             + ' F | ' + n(v.jours?v.act/v.jours:0) + ' | ' + n(v.nw) + ' | ' + n(v.un));
+      });
+  } catch(e) { L.push('(vue courante indisponible : ' + e.message + ')'); }
+
+  // ── Entonnoir 6D ────────────────────────────────────────────────────────
+  try {
+    const d6 = dates6D();
+    if (d6.length) {
+      const S = agg6D(d6);
+      L.push('');
+      L.push('=== ENTONNOIR DE COLLECTE — source 6D, ' + d6[0] + ' → ' + d6[d6.length-1] + ' ===');
+      L.push('Nouveaux abonnés : ' + n(S.cycle.nouveaux));
+      L.push('Passages en grâce (échec du prélèvement) : ' + n(S.cycle.a2g));
+      L.push('Retours depuis la grâce : ' + n(S.cycle.g2a) + ' soit ' + n(S.recupGrace,1) + ' %');
+      L.push('Passages en suspension : ' + n(S.cycle.g2s));
+      L.push('Retours depuis la suspension : ' + n(S.cycle.s2a) + ' soit ' + n(S.recupSusp,1) + ' %');
+      L.push('Désabonnements automatiques : ' + n(S.cycle.s2d) + ' soit ' + n(S.desabJour) + ' par jour');
+      L.push('Récupération totale de la fenêtre de rattrapage : ' + n(S.recupTotale,1) + ' %');
+      L.push('');
+      L.push('STRUCTURE DES PRIX — part de chaque palier dans les transactions');
+      const tot = S.transactions;
+      Object.keys(S.paliers).map(Number).sort((a,b)=>b-a).forEach(p => {
+        const tx = S.paliers[p]/p;
+        L.push(p + ' F | ' + n(tx) + ' transactions (' + n(tx/tot*100,1) + ' %) | '
+             + n(S.paliers[p]) + ' XAF HT (' + n(S.paliers[p]/S.revenuHT*100,1) + ' % du revenu)');
+      });
+      L.push('Prix moyen encaissé toutes offres : ' + n(S.prixMoyen,1) + ' F');
+    }
+  } catch(e) { L.push('(données 6D indisponibles)'); }
+
+  // ── Registre des constats ───────────────────────────────────────────────
+  try {
+    const cs = getConstats();
+    L.push('');
+    L.push('=== CONSTATS ÉTABLIS PAR LES ANALYSES ===');
+    L.push('Trois niveaux de confiance. RESPECTE-LES dans tes réponses :');
+    L.push('- ETABLI : retrouvé par au moins deux méthodes indépendantes. Utilisable comme fait.');
+    L.push('- MESURE : mesuré une fois, sans recoupement. À présenter avec la réserve.');
+    L.push('- HYPOTHESE : posé faute de mieux. NE JAMAIS présenter comme un fait.');
+    L.push('');
+    ['ETABLI','MESURE','HYPOTHESE'].forEach(niv => {
+      cs.filter(c => c.niveau === niv).forEach(c => {
+        L.push('[' + niv + '] ' + c.titre + ' — ' + c.valeur);
+        if (c.detail)  L.push('   ' + c.detail);
+        if (c.methode) L.push('   Méthode : ' + c.methode);
+      });
+    });
+  } catch(e) { L.push('(registre indisponible)'); }
+
+  // ── Facturation opérateurs ──────────────────────────────────────────────
+  try {
+    const fs = (getFinState().factures || []);
+    if (fs.length) {
+      L.push('');
+      L.push('=== FACTURATION OPÉRATEURS ===');
+      const ouv = fs.filter(f => f.statut !== 'paye');
+      L.push(ouv.length + ' factures ouvertes sur ' + fs.length + ', pour '
+           + n(ouv.reduce((s,f)=>s+(+f.montant_snv||0),0)) + ' XAF en attente.');
+      L.push('opérateur | mois | type | montant SNV | étape en cours | responsable');
+      fs.slice().sort((a,b)=>(b.mois||'').localeCompare(a.mois||'')).forEach(f => {
+        L.push(f.operateur + ' | ' + (f.mois||'') + ' | ' + (f.type||'') + ' | '
+             + (f.montant_snv ? n(f.montant_snv) : 'non saisi') + ' | '
+             + (typeof finLibelleStatut === 'function' ? finLibelleStatut(f) : f.statut)
+             + ' | ' + (f.responsable || '—'));
+      });
+      const manq = (typeof finMoisManquants === 'function') ? finMoisManquants(getFinState()) : [];
+      if (manq.length) L.push('Mois sans facture enregistrée : '
+        + manq.map(m => m.operateur + ' ' + m.mois + ' (' + m.type + ')').join(', '));
+    }
+  } catch(e) {}
+
+  L.push('');
+  L.push('=== CE QUE TU NE PEUX PAS SAVOIR ===');
+  L.push('- Les exports MSISDN ne portent pas de date d\'événement : le suivi de cohorte est approximatif.');
+  L.push('- Un écart résiduel de 10,4 % entre CRM et rapports MTN subsiste après retraitement TVA, inexpliqué.');
+  L.push('- L\'historique ne couvre que juin à août 2026 : rien au-delà de cinq semaines de vie d\'une cohorte.');
+  L.push('- Le revenu par recrue n\'est pas tranché. Ne donne jamais un chiffre unique sans dire la fourchette.');
+  return L.join('\n');
+}
+
+const BIC_IA_SYSTEME = [
+  'Tu es l\'assistant analytique du Business Intelligence Center de StarNews Mobile,',
+  'opérateur de services de contenu mobile en Côte d\'Ivoire (chaînes vidéo par abonnement sur MTN et Orange).',
+  '',
+  'Tu réponds en français, de façon directe et concise. Tu t\'adresses à un dirigeant qui connaît son métier :',
+  'pas de pédagogie inutile, pas de reformulation de la question.',
+  '',
+  'Règles de rigueur, non négociables :',
+  '- Tu ne calcules que sur les données fournies dans le contexte. Si une donnée manque, tu le dis.',
+  '- Tu distingues systématiquement ce qui est mesuré de ce qui est estimé ou supposé.',
+  '- Le contexte classe chaque constat en ETABLI, MESURE ou HYPOTHESE. Tu respectes ce classement :',
+  '  un ETABLI se cite comme un fait, un MESURE se cite avec sa réserve, un HYPOTHESE ne se cite jamais',
+  '  comme un fait — tu dis explicitement que le chiffre est une hypothèse et pourquoi.',
+  '- Quand on te demande un chiffre présent dans la vue affichée, tu le reprends tel quel plutôt que',
+  '  de recalculer : le CRM a déjà appliqué les filtres et les corrections.',
+  '- Tu signales les pièges connus : montants TTC du CRM, tarif affiché sans rapport avec le prix encaissé,',
+  '  facturations qui ne sont pas des abonnés.',
+  '- Si une question demande une donnée absente du contexte, tu expliques quelle source la porterait.',
+  '',
+  'Tu ne fabriques jamais un chiffre. Mieux vaut dire que tu ne sais pas.'
+].join('\n');
+
+// Le principal obstacle n'est ni la clé ni le code : c'est le protocole.
+// Ouvert par double-clic, le fichier est servi en file:// et le navigateur
+// attribue à la page une origine « nulle ». Toute requête vers un autre
+// domaine est alors refusée avant même d'être émise — le contrôle CORS
+// échoue puisque aucune origine ne peut être autorisée.
+function bicIaEnvironnement() {
+  const p = (location && location.protocol) || '';
+  if (p === 'file:') {
+    return { ok:false, cause:'file',
+      message:'Le CRM est ouvert en accès fichier direct (file://). Dans ce mode le navigateur '
+            + 'attribue une origine nulle à la page et bloque toute requête réseau sortante, '
+            + 'quelle que soit la clé utilisée.' };
+  }
+  return { ok:true, protocole:p };
+}
+
+function bicRenderConsole() {
+  const c = bicIaConf();
+  const hist = bicIaHist();
+  const env = bicIaEnvironnement();
+
+  let h = '';
+
+  if (!env.ok) {
+    h += '<div style="background:#fef2f2;border:1px solid #fecaca;border-left:3px solid #ef4444;'
+      + 'border-radius:0 8px 8px 0;padding:14px 16px;margin-bottom:14px;font-size:11px;line-height:1.75;color:#7f1d1d">'
+      + '<div style="font-weight:700;color:#991b1b;margin-bottom:6px">La console ne peut pas fonctionner dans ce mode d\'ouverture</div>'
+      + env.message
+      + '<div style="margin-top:10px;font-weight:600;color:#991b1b">Comment le corriger</div>'
+      + 'Il faut servir le fichier par un petit serveur local. Le plus simple, une fois Python installé : '
+      + 'ouvrir une invite de commandes dans le dossier du CRM et lancer '
+      + '<code style="background:#fff;padding:2px 6px;border-radius:3px;border:1px solid #fecaca">python -m http.server 8000</code>, '
+      + 'puis ouvrir <code style="background:#fff;padding:2px 6px;border-radius:3px;border:1px solid #fecaca">http://localhost:8000/SNV_CIV_CRM.html</code>.'
+      + '<div style="margin-top:8px">Le fichier <strong>Lancer_CRM.bat</strong> fourni à côté du CRM fait ces deux opérations d\'un double-clic.</div>'
+      + '<div style="margin-top:10px;font-size:10px;color:#9f1239">Tout le reste du CRM continue de fonctionner normalement en file:// — '
+      + 'seule la console, qui a besoin du réseau, est concernée.</div>'
+      + '</div>';
+  }
+  if (c.cle && c.heritee) {
+    h += '<div style="background:#eefaf1;border:1px solid #c6e9d3;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:11px;color:#166534">'
+      + 'Clé reprise de la configuration IA déjà enregistrée dans le CRM. Rien à ressaisir.</div>';
+  }
+  if (!c.cle) {
+    h += '<div style="background:#fff8e6;border:1px solid #f3e2b5;border-radius:8px;padding:14px 16px;margin-bottom:14px;font-size:11px;line-height:1.7;color:#475569">'
+      + '<strong style="color:#0f172a">Configuration requise.</strong> La console interroge directement l\'API Anthropic '
+      + 'depuis ton navigateur. Ta clé reste sur cette machine, dans le stockage local — elle n\'est ni écrite dans le '
+      + 'fichier, ni transmise ailleurs qu\'à api.anthropic.com, ni incluse dans les sauvegardes exportées. '
+      + 'Une clé se crée sur console.anthropic.com.</div>';
+  }
+
+  h += '<div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;flex-wrap:wrap">'
+    + '<input id="bicIaCle" type="password" placeholder="Clé API Anthropic (sk-ant-…)" value="'+(c.cle||'')+'" '
+    + 'style="flex:1;min-width:230px;padding:7px 11px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px">'
+    + '<select id="bicIaModele" style="padding:7px 11px;border:1px solid #e2e8f0;border-radius:6px;font-size:11px">'
+    + BIC_IA_MODELES.map(([v,l]) => '<option value="'+v+'"'+((c.modele||BIC_IA_MODELES[0][0])===v?' selected':'')+'>'+l+'</option>').join('')
+    + '</select>'
+    + '<button onclick="bicIaSauver()" style="padding:7px 15px;background:#4f5bd5;color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">Enregistrer</button>'
+    + '<button onclick="bicIaTester()" style="padding:7px 13px;background:#f4f6f8;color:#64748b;border:1px solid #e6e9ef;border-radius:6px;font-size:11px;cursor:pointer">Tester</button>'
+    + '<button onclick="bicIaEffacer()" style="padding:7px 13px;background:#f4f6f8;color:#64748b;border:1px solid #e6e9ef;border-radius:6px;font-size:11px;cursor:pointer">Vider</button>'
+    + '</div>';
+
+  // Ce que la console voit réellement — utile pour comprendre ses réponses.
+  var _ctxKo = 0;
+  try { _ctxKo = Math.round(bicIaContexte().length / 1024 * 10) / 10; } catch(e) {}
+  h += '<div style="font-size:10px;color:#94a3b8;margin-bottom:10px;line-height:1.5">'
+    + 'Contexte transmis : <strong style="color:#64748b">' + _ctxKo + ' Ko</strong> — vue affichée, '
+    + 'détail par canal, entonnoir 6D, structure des prix, registre des constats, facturation opérateurs. '
+    + '<a href="#" onclick="bicIaVoirContexte();return false" style="color:#4f5bd5">voir</a></div>';
+
+  h += '<div id="bicIaFil" style="background:#fbfcfd;border:1px solid #e2e8f0;border-radius:8px;padding:16px;min-height:260px;max-height:460px;overflow-y:auto;margin-bottom:12px">';
+  if (!hist.length) {
+    h += '<div style="color:#94a3b8;font-size:11px;line-height:1.8">'
+      + 'La console reçoit automatiquement la performance par canal sur 30 jours, le profil de cycle de vie, '
+      + 'et les constats établis lors de nos analyses.<br><br>'
+      + '<strong style="color:#64748b">Quelques questions pour démarrer :</strong><br>'
+      + ['Quel canal a le meilleur rendement et pourquoi ?',
+         'Pourquoi le prix moyen encaissé est-il si bas ?',
+         'Sur quel canal faut-il arrêter d\'investir ?',
+         'Que se passerait-il si MTN allongeait la fenêtre de suspension ?']
+        .map(q => '<div onclick="bicIaProposer(this)" style="cursor:pointer;padding:5px 9px;margin-top:5px;background:#fff;border:1px solid #e2e8f0;border-radius:5px;display:inline-block;margin-right:5px;color:#4f5bd5">'+q+'</div>').join('')
+      + '</div>';
+  } else {
+    hist.forEach(m => { h += bicIaBulle(m.role, m.content); });
+  }
+  h += '</div>';
+
+  h += '<div style="display:flex;gap:8px">'
+    + '<textarea id="bicIaSaisie" rows="2" placeholder="Pose ta question sur les données…" '
+    + 'onkeydown="if(event.key===\'Enter\'&&!event.shiftKey){event.preventDefault();bicIaEnvoyer();}" '
+    + 'style="flex:1;padding:9px 12px;border:1px solid #e2e8f0;border-radius:6px;font-size:12px;font-family:inherit;resize:vertical"></textarea>'
+    + '<button id="bicIaBtn" onclick="bicIaEnvoyer()" style="padding:9px 20px;background:#4f5bd5;color:#fff;border:none;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;white-space:nowrap">Envoyer</button>'
+    + '</div>';
+  h += '<div style="font-size:9px;color:#94a3b8;margin-top:7px">Entrée pour envoyer · Maj+Entrée pour un retour à la ligne. '
+    + 'Les échanges sont conservés localement, uniquement dans ce navigateur.</div>';
+  return h;
+}
+
+// Test de connexion : une requête minimale pour vérifier clé, réseau et modèle
+// avant de gaspiller un contexte complet.
+async function bicIaTester() {
+  var fil = document.getElementById('bicIaFil');
+  var env = bicIaEnvironnement();
+  if (!env.ok) {
+    if (fil) fil.innerHTML += bicIaBulle('assistant', '**Ouverture en file://** — la requête sera bloquée. Lance `Lancer_CRM.bat`.');
+    return;
+  }
+  var conf = bicIaConf();
+  if (!conf.cle) {
+    if (fil) fil.innerHTML += bicIaBulle('assistant', 'Aucune clé enregistrée.');
+    return;
+  }
+  if (fil) fil.innerHTML += bicIaBulle('assistant', 'Test de connexion en cours…');
+  try {
+    var r = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{ 'content-type':'application/json', 'x-api-key':conf.cle,
+                'anthropic-version':'2023-06-01', 'anthropic-dangerous-direct-browser-access':'true' },
+      body: JSON.stringify({ model: conf.modele || BIC_IA_MODELES[0][0], max_tokens: 16,
+                             messages:[{role:'user', content:'Réponds exactement : OK'}] })
+    });
+    if (r.ok) {
+      var d = await r.json();
+      var t = (d.content||[]).map(function(b){return b.text||'';}).join('').trim();
+      fil.innerHTML += bicIaBulle('assistant', '**Connexion établie.** Modèle `'
+        + (conf.modele || BIC_IA_MODELES[0][0]) + '` · réponse : ' + t);
+    } else {
+      var e = {}; try { e = await r.json(); } catch(_) {}
+      fil.innerHTML += bicIaBulle('assistant', '**Échec ' + r.status + '** — '
+        + ((e.error && e.error.message) || 'réponse illisible')
+        + (r.status===401 ? '\n\nLa clé est refusée : vérifie qu\'elle est active et que le compte a du crédit.' : ''));
+    }
+  } catch(e) {
+    fil.innerHTML += bicIaBulle('assistant', '**Requête bloquée** — ' + (e.message||e)
+      + '\n\nPare-feu, proxy d\'entreprise ou extension de navigateur. Ouvre F12 onglet Réseau pour voir si la requête part.');
+  }
+  fil.scrollTop = fil.scrollHeight;
+}
+
+// Montre exactement ce qui part vers le modèle. Rien de caché.
+function bicIaVoirContexte() {
+  var fil = document.getElementById('bicIaFil');
+  if (!fil) return;
+  var c = '';
+  try { c = bicIaContexte(); } catch(e) { c = 'Erreur : ' + e.message; }
+  fil.innerHTML += '<div style="margin-bottom:14px"><div style="font-size:10px;color:#94a3b8;margin-bottom:4px">'
+    + 'Contexte transmis au modèle</div><pre style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:6px;'
+    + 'padding:10px;font-size:9px;line-height:1.5;max-height:280px;overflow:auto;white-space:pre-wrap;'
+    + 'color:#475569;margin:0">' + c.replace(/&/g,'&amp;').replace(/</g,'&lt;') + '</pre></div>';
+  fil.scrollTop = fil.scrollHeight;
+}
+
+function bicIaBulle(role, texte) {
+  const moi = role === 'user';
+  // Rendu minimal : gras, code, retours à la ligne. Pas de HTML injecté.
+  const esc = String(texte).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+  const fmt = esc.replace(/\*\*(.+?)\*\*/g,'<strong>$1</strong>')
+                 .replace(/`(.+?)`/g,'<code style="background:#eef1f6;padding:1px 4px;border-radius:3px;font-size:11px">$1</code>')
+                 .replace(/\n/g,'<br>');
+  return '<div style="margin-bottom:14px;display:flex;justify-content:'+(moi?'flex-end':'flex-start')+'">'
+    + '<div style="max-width:82%;padding:10px 14px;border-radius:10px;font-size:12px;line-height:1.65;'
+    + (moi ? 'background:#4f5bd5;color:#fff' : 'background:#fff;border:1px solid #e2e8f0;color:#1e293b')
+    + '">' + fmt + '</div></div>';
+}
+
+function bicIaSauver() {
+  const cle = ((document.getElementById('bicIaCle')||{}).value || '').trim();
+  const modele = (document.getElementById('bicIaModele')||{}).value || BIC_IA_MODELES[0][0];
+  if (cle && cle.indexOf('sk-ant-') !== 0) {
+    alert('Clé invalide : une clé Anthropic commence par sk-ant-');
+    return;
+  }
+  bicIaSetConf({cle: cle, modele: modele});
+  // On tient la configuration partagée à jour, pour que l'analyse de notes
+  // brutes et la console utilisent la même clé.
+  if (cle) { try { localStorage.setItem('snv_ai_cfg', JSON.stringify({key: cle})); } catch(e) {} }
+  if (typeof campToast === 'function') campToast('Configuration enregistrée sur cette machine.', 'success');
+  const b = document.getElementById('analyse-block-console');
+  if (b) b.innerHTML = bicRenderConsole();
+}
+
+function bicIaEffacer() {
+  bicIaSetHist([]);
+  const f = document.getElementById('bicIaFil');
+  if (f) f.innerHTML = '<div style="color:#94a3b8;font-size:11px">Historique vidé.</div>';
+}
+
+function bicIaProposer(el) {
+  const s = document.getElementById('bicIaSaisie');
+  if (s) { s.value = el.textContent; s.focus(); }
+}
+
+async function bicIaEnvoyer() {
+  const saisie = document.getElementById('bicIaSaisie');
+  const fil    = document.getElementById('bicIaFil');
+  const btn    = document.getElementById('bicIaBtn');
+  if (!saisie || !fil) return;
+
+  const question = saisie.value.trim();
+  if (!question) return;
+
+  const env0 = bicIaEnvironnement();
+  if (!env0.ok) {
+    fil.innerHTML += bicIaBulle('user', question);
+    fil.innerHTML += bicIaBulle('assistant',
+      '**Le fichier est ouvert en file://** — le navigateur bloque la requête avant de l\'émettre. '
+      + 'Double-clique sur `Lancer_CRM.bat` dans le dossier du CRM, puis rouvre la console depuis '
+      + '`http://localhost:8000/SNV_CIV_CRM.html`. Ta clé et ton historique seront toujours là.');
+    saisie.value = '';
+    fil.scrollTop = fil.scrollHeight;
+    return;
+  }
+
+  const conf = bicIaConf();
+  if (!conf.cle) {
+    fil.innerHTML += bicIaBulle('assistant', 'Aucune clé API enregistrée. Saisis ta clé Anthropic ci-dessus puis clique sur Enregistrer.');
+    fil.scrollTop = fil.scrollHeight;
+    return;
+  }
+
+  let hist = bicIaHist();
+  hist.push({role:'user', content:question});
+  bicIaSetHist(hist);
+
+  if (fil.querySelector('div[onclick]')) fil.innerHTML = '';
+  fil.innerHTML += bicIaBulle('user', question);
+  saisie.value = '';
+  btn.disabled = true; btn.textContent = '…';
+  const idAttente = 'bicAtt'+Date.now();
+  fil.innerHTML += '<div id="'+idAttente+'" style="color:#94a3b8;font-size:11px;margin-bottom:12px">Analyse en cours…</div>';
+  fil.scrollTop = fil.scrollHeight;
+
+  try {
+    const r = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        'x-api-key': conf.cle,
+        'anthropic-version': '2023-06-01',
+        // Requis pour autoriser l'appel direct depuis un navigateur.
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: conf.modele || BIC_IA_MODELES[0][0],
+        max_tokens: 1800,
+        system: BIC_IA_SYSTEME + '\n\n=== CONTEXTE DE DONNÉES ===\n' + bicIaContexte(),
+        messages: hist.slice(-12).map(m => ({role:m.role, content:m.content}))
+      })
+    });
+
+    const att = document.getElementById(idAttente); if (att) att.remove();
+
+    if (!r.ok) {
+      let msg = 'Erreur ' + r.status;
+      try { const e = await r.json(); if (e.error && e.error.message) msg += ' — ' + e.error.message; } catch(_) {}
+      if (r.status === 401) msg = 'Clé API refusée. Vérifie qu\'elle est valide et active.';
+      if (r.status === 429) msg = 'Limite de débit atteinte. Réessaie dans un instant.';
+      fil.innerHTML += bicIaBulle('assistant', msg);
+      fil.scrollTop = fil.scrollHeight;
+      return;
+    }
+
+    const data = await r.json();
+    const texte = (data.content||[]).filter(b=>b.type==='text').map(b=>b.text).join('\n') || '(réponse vide)';
+    hist.push({role:'assistant', content:texte});
+    bicIaSetHist(hist);
+    fil.innerHTML += bicIaBulle('assistant', texte);
+    fil.scrollTop = fil.scrollHeight;
+
+  } catch (e) {
+    const att = document.getElementById(idAttente); if (att) att.remove();
+    const env = bicIaEnvironnement();
+    let msg;
+    if (!env.ok) {
+      // Cause la plus fréquente, et identifiable avec certitude.
+      msg = '**Le fichier est ouvert en file://.** Le navigateur attribue une origine nulle à la page '
+          + 'et bloque toute requête réseau sortante, avant même de contacter le serveur.\n\n'
+          + '**Solution :** servir le CRM par un serveur local. Double-clique sur `Lancer_CRM.bat`, '
+          + 'ou lance `python -m http.server 8000` dans le dossier du CRM puis ouvre '
+          + '`http://localhost:8000/SNV_CIV_CRM.html`.';
+    } else if (!navigator.onLine) {
+      msg = '**Pas de connexion réseau détectée.** Rétablis la connexion puis réessaie.';
+    } else {
+      msg = 'Appel impossible : ' + (e && e.message ? e.message : e) + '\n\n'
+          + 'La page est servie en `' + (env.protocole || '?') + '` donc le mode d\'ouverture n\'est pas en cause. '
+          + 'Pistes probables : un pare-feu ou un proxy d\'entreprise qui bloque `api.anthropic.com`, '
+          + 'ou une extension de navigateur qui intercepte les requêtes. '
+          + 'Pour trancher, ouvre la console du navigateur (F12, onglet Réseau) et regarde si la requête part.';
+    }
+    fil.innerHTML += bicIaBulle('assistant', msg);
+    fil.scrollTop = fil.scrollHeight;
+  } finally {
+    btn.disabled = false; btn.textContent = 'Envoyer';
+  }
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ═══════════════════════════════════════════════════════════════════════════
+// FINANCE — Suivi des étapes, version 2
+// ═══════════════════════════════════════════════════════════════════════════
+// Refonte d'août 2026 après confrontation avec le suivi réellement tenu par
+// la direction financière. Quatre corrections par rapport à la version 1 :
+//
+//   1. Les workflows étaient faux. MTN compte 6 étapes réelles et non 9,
+//      et l'étape « Contresigne MTN » est en fait la validation Revenue
+//      Assurance — équipe différente, délai différent, et c'est là que ça
+//      bloque. OCI comptait une étape « En attente » qui n'en est pas une.
+//
+//   2. Une étape n'est pas binaire. Le suivi réel distingue « en cours » de
+//      « fait » : une facture peut être déposée sans accusé, un paiement
+//      peut être relancé sans être encaissé. Trois états, donc.
+//
+//   3. Il manquait le responsable. Le suivi réel nomme qui porte le dossier —
+//      Papy, Guy, Oumar. Sans ça, on sait qu'une facture est bloquée mais pas
+//      qui relancer.
+//
+//   4. Il manquait la dernière action. Une ligne de texte libre horodatée,
+//      qui dit ce qui a été fait en dernier. C'est ce qu'on lit en premier
+//      quand on reprend un dossier.
+
+const FIN_ETATS = [
+  { id:'',        label:'—',        court:'',         color:'#cbd5e1', fond:'#fff'     },
+  { id:'encours', label:'En cours', court:'En cours', color:'#f59e0b', fond:'#fffbeb'  },
+  { id:'ok',      label:'Fait',     court:'OK',       color:'#22c55e', fond:'#f0fdf4'  },
+];
+
+// Rappels opérationnels. Les adresses viennent de FIN_OPERATEURS pour ne pas
+// les dupliquer, mais les responsables sont propres au suivi.
+const FIN_RAPPELS = {
+  OCI: [
+    ['Envoi des stats',  'jean-claude.kouame@orange.com'],
+    ['Dépôt',            'Physique, siège OCI'],
+    ['FNE',              'services.fne.dgi.gouv.ci — n° 1516517E']
+  ],
+  MTN: [
+    ['États mensuels',   'Adama.Koeta@mtn.com'],
+    ['FNE + stats',      'Reception.factures_ci@mtn.com · Fleur.Koudou@mtn.com'],
+    ['FNE',              'services.fne.dgi.gouv.ci — n° 1516517E']
+  ]
+};
+
+function finEtapesDe(op) {
+  return op === 'OCI' ? FIN_STATUS_OCI : FIN_STATUS_MTN;
+}
+
+// ── Migration ──────────────────────────────────────────────────────────────
+// Convertit une facture au format v1 (statut seul, étapes datées) vers le
+// format v2 (étapes à trois états). Idempotente : une facture déjà migrée
+// n'est pas retouchée.
+function finMigrerFacture(f) {
+  if (f._v2) return false;
+  var etapes = finEtapesDe(f.operateur);
+  var table = FIN_MIGRATION_STATUT[f.operateur] || {};
+
+  // Le statut ancien devient l'étape la plus avancée réputée acquise.
+  var cible = table.hasOwnProperty(f.statut) ? table[f.statut] : f.statut;
+  var idxCible = -1;
+  etapes.forEach(function (e, i) { if (e.id === cible) idxCible = i; });
+
+  var anciennes = f.etapes || {};
+  f.etapes = {};
+  etapes.forEach(function (e, i) {
+    var vieux = anciennes[e.id];
+    var date = (vieux && vieux.date) || '';
+    // Toute étape située avant la cible est réputée faite : on ne peut pas
+    // être à l'étape 4 sans avoir franchi les précédentes.
+    var etat = (i <= idxCible) ? 'ok' : (date ? 'ok' : '');
+    f.etapes[e.id] = { etat: etat, date: date, note: (vieux && vieux.note) || '' };
+  });
+
+  f.statut = cible;
+  if (f.responsable === undefined) f.responsable = '';
+  if (f.derniere_action === undefined) f.derniere_action = '';
+  f._v2 = true;
+  return true;
+}
+
+function finMigrerToutes() {
+  saveFinMutation(function (s) {
+    (s.factures || []).forEach(finMigrerFacture);
+  });
+}
+
+// ── Lecture ────────────────────────────────────────────────────────────────
+
+function finEtat(f, idEtape) {
+  return (f.etapes && f.etapes[idEtape] && f.etapes[idEtape].etat) || '';
+}
+function finDateEtape(f, idEtape) {
+  return (f.etapes && f.etapes[idEtape] && f.etapes[idEtape].date) || '';
+}
+
+// Étape courante = dernière marquée « fait ». -1 si rien n'est fait.
+function finIndexAvancement(f) {
+  var etapes = finEtapesDe(f.operateur);
+  var idx = -1;
+  etapes.forEach(function (e, i) { if (finEtat(f, e.id) === 'ok') idx = i; });
+  return idx;
+}
+
+// Ce qui bloque : la première étape non faite après la dernière faite.
+function finProchaineEtape(f) {
+  var etapes = finEtapesDe(f.operateur);
+  var idx = finIndexAvancement(f);
+  if (idx >= etapes.length - 1) return null;
+  return etapes[idx + 1];
+}
+
+function finLibelleStatut(f) {
+  var suivante = finProchaineEtape(f);
+  if (!suivante) return 'Payée';
+  var etat = finEtat(f, suivante.id);
+  return (etat === 'encours' ? 'En cours : ' : 'En attente : ') + suivante.label;
+}
+
+function finJoursDepuisDerniereEtape(f) {
+  var dates = [];
+  if (f.etapes) Object.keys(f.etapes).forEach(function (k) {
+    if (f.etapes[k] && f.etapes[k].date) dates.push(f.etapes[k].date);
+  });
+  if (!dates.length) return null;
+  dates.sort();
+  return Math.round((Date.now() - new Date(dates[dates.length - 1] + 'T00:00:00').getTime()) / 86400000);
+}
+
+// ── Mutations ──────────────────────────────────────────────────────────────
+
+// Un clic fait tourner l'état : vide → en cours → fait → vide.
+// La date se pose automatiquement au passage à « fait », et seulement là :
+// « en cours » n'est pas un événement daté.
+function finCyclerEtape(idFacture, idEtape) {
+  saveFinMutation(function (s) {
+    var f = (s.factures || []).find(function (x) { return x.id === idFacture; });
+    if (!f) return;
+    finMigrerFacture(f);
+    if (!f.etapes[idEtape]) f.etapes[idEtape] = { etat:'', date:'', note:'' };
+    var c = f.etapes[idEtape];
+    c.etat = c.etat === '' ? 'encours' : (c.etat === 'encours' ? 'ok' : '');
+    if (c.etat === 'ok' && !c.date) c.date = new Date().toISOString().slice(0, 10);
+    if (c.etat === '') c.date = '';
+    finRecalculerStatut(f);
+  });
+}
+
+function finSetDateEtape(idFacture, idEtape, valeur) {
+  saveFinMutation(function (s) {
+    var f = (s.factures || []).find(function (x) { return x.id === idFacture; });
+    if (!f) return;
+    finMigrerFacture(f);
+    if (!f.etapes[idEtape]) f.etapes[idEtape] = { etat:'', date:'', note:'' };
+    f.etapes[idEtape].date = valeur || '';
+    // Saisir une date vaut confirmation que l'étape est faite.
+    if (valeur && f.etapes[idEtape].etat !== 'ok') f.etapes[idEtape].etat = 'ok';
+    finRecalculerStatut(f);
+  });
+}
+
+function finSetChamp(idFacture, champ, valeur) {
+  saveFinMutation(function (s) {
+    var f = (s.factures || []).find(function (x) { return x.id === idFacture; });
+    if (!f) return;
+    finMigrerFacture(f);
+    f[champ] = valeur;
+  });
+}
+
+function finRecalculerStatut(f) {
+  var etapes = finEtapesDe(f.operateur);
+  var idx = finIndexAvancement(f);
+  f.statut = idx >= 0 ? etapes[idx].id : '';
+  if (f.statut === 'paye' && !f.date_paye) f.date_paye = finDateEtape(f, 'paye');
+}
+
+// ── Factures manquantes ────────────────────────────────────────────────────
+// Compare les mois présents en base avec ceux qui devraient l'être : on
+// facture chaque mois écoulé, donc un trou dans la série est une facture
+// oubliée. C'est ce contrôle qui a révélé cinq factures absentes en août 2026.
+function finMoisManquants(s) {
+  var res = [];
+  var aujourdhui = new Date();
+  var moisCourant = aujourdhui.toISOString().slice(0, 7);
+
+  ['OCI', 'MTN'].forEach(function (op) {
+    var types = op === 'OCI' ? ['both'] : ['organic', 'bundle'];
+    types.forEach(function (t) {
+      var presents = {};
+      (s.factures || []).forEach(function (f) {
+        if (f.operateur === op && (f.type === t || (op === 'OCI' && f.type)))
+          presents[f.mois] = true;
+      });
+      var mois = Object.keys(presents).sort();
+      if (!mois.length) return;
+      // Du premier mois facturé jusqu'au mois précédent celui en cours.
+      var d = new Date(mois[0] + '-01T00:00:00');
+      var fin = new Date(moisCourant + '-01T00:00:00');
+      while (d < fin) {
+        var m = d.toISOString().slice(0, 7);
+        if (!presents[m]) res.push({ operateur: op, type: t, mois: m });
+        d.setMonth(d.getMonth() + 1);
+      }
+    });
+  });
+  return res;
+}
+
+function finCreerManquantes() {
+  var s = getFinState();
+  var manq = finMoisManquants(s);
+  if (!manq.length) { alert('Aucune facture manquante détectée.'); return; }
+  var liste = manq.map(function (m) { return m.operateur + ' ' + m.mois + ' (' + m.type + ')'; }).join('\n');
+  if (!confirm('Créer ' + manq.length + ' facture(s) manquante(s) ?\n\n' + liste
+             + '\n\nElles seront créées sans montant : à compléter depuis « Factures Op. ».')) return;
+  saveFinMutation(function (st) {
+    manq.forEach(function (m) {
+      st.factures.push({
+        id: 'fin_' + Date.now() + '_' + Math.random().toString(36).slice(2, 7),
+        operateur: m.operateur, mois: m.mois, type: m.type,
+        montant_snv: null, montant_op: null, statut: '', fne_number: null,
+        date_facture: null, date_paye: null, date_echeance: null,
+        notes: 'Créée automatiquement — montant à renseigner',
+        responsable: '', derniere_action: '', etapes: {}, _v2: true
+      });
+    });
+  });
+}
+
+
+// ── Fiche détaillée d'une facture ──────────────────────────────────────────
+// Reprend ce que l'onglet « Factures Op. » faisait de mieux : saisie des
+// montants avec remplissage automatique depuis les données du CRM, contrôle
+// de réconciliation, numéro FNE, échéance et relance.
+//
+// Pourquoi une ligne dépliable plutôt que des colonnes en plus : la grille
+// compte déjà 6 ou 7 colonnes d'étapes. Ajouter six champs de saisie la
+// rendrait illisible. Ici la matrice reste lisible d'un coup d'œil, et le
+// détail est à un clic.
+
+var _finFicheOuverte = null;
+
+function finBasculerFiche(id) {
+  _finFicheOuverte = (_finFicheOuverte === id) ? null : id;
+  renderFinance();
+}
+
+function finLigneDetail(f, nbColonnes) {
+  var isOCI = f.operateur === 'OCI';
+  var today = new Date().toISOString().slice(0, 10);
+  var enRetard = f.date_echeance && f.date_echeance < today && f.statut !== 'paye';
+
+  // Réconciliation : l'écart entre ce que SNV facture et ce que l'opérateur
+  // déclare. Au-delà de 3 % il faut en parler avant d'émettre la FNE.
+  var recon = '<span style="color:#94a3b8">montants incomplets</span>';
+  var pct = null;
+  if (f.montant_snv && f.montant_op) {
+    pct = (f.montant_snv - f.montant_op) / f.montant_snv * 100;
+    var ok = Math.abs(pct) <= 3;
+    recon = '<span style="color:' + (ok ? '#15803d' : '#dc2626') + ';font-weight:700">'
+          + pct.toFixed(1) + ' % · ' + (ok ? 'conforme' : 'écart à justifier') + '</span>';
+  }
+
+  var typeOpts = [{id:'organic',label:'Organic'},{id:'bundle',label:'Bundle'},{id:'both',label:'Org + Bundle'}];
+
+  var h = '<tr><td colspan="' + nbColonnes + '" style="padding:0;background:#fafbfc;border-bottom:2px solid #e2e8f0">';
+  h += '<div style="padding:14px 18px">';
+  h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px">';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Montant SNV</div>'
+     + '<div style="display:flex;gap:4px;align-items:center">'
+     + _finNum(f.montant_snv, 'Montant SNV', "finSetMontantSnv('" + f.id + "',this.value)", '118px')
+     + '<button class="btn btn-soft" onclick="finAutoFillMontant(\'' + f.id + '\')" '
+     + 'title="Calculer depuis les données du CRM pour ce mois" style="padding:4px 8px;font-size:10px">CRM</button>'
+     + '</div></div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Montant opérateur</div>'
+     + _finNum(f.montant_op, 'Montant opérateur', "finSetMontantOp('" + f.id + "',this.value)", '130px') + '</div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Réconciliation</div>'
+     + '<div style="font-size:12px;padding-top:5px">' + recon + '</div></div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Type</div>'
+     + (isOCI ? '<div style="font-size:11px;color:#94a3b8;padding-top:6px">Organique + Bundle</div>'
+              : _finSel(typeOpts, f.type || 'both', "finSetFactField('" + f.id + "','type',this.value)", 'max-width:128px'))
+     + '</div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">N° FNE</div>'
+     + _finInp(f.fne_number, 'N° FNE', "finSetFactField('" + f.id + "','fne_number',this.value)", '110px') + '</div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Échéance</div>'
+     + _finDate(f.date_echeance, "finSetFactField('" + f.id + "','date_echeance',this.value)")
+     + (enRetard ? '<div style="color:#dc2626;font-size:10px;margin-top:2px">dépassée</div>' : '') + '</div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Relance</div>'
+     + (f.statut === 'paye' ? '<span style="color:#94a3b8;font-size:11px">—</span>'
+        : finRelanceCell('facture', f) + '<div style="margin-top:4px">' + finBtnTache('facture', f.id) + '</div>')
+     + '</div>';
+
+  h += '<div style="grid-column:span 2"><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Notes</div>'
+     + _finInp(f.notes, 'Notes…', "finSetFactField('" + f.id + "','notes',this.value)", '100%') + '</div>';
+
+  h += '</div>';
+
+  // Conseil contextuel : c'est au moment de la réconciliation OCI que l'écart
+  // doit être traité, pas après émission de la FNE.
+  if (isOCI && pct !== null && finEtat(f, 'stats_oci_recues') === 'ok' && finEtat(f, 'fne_generee') !== 'ok') {
+    var ok2 = Math.abs(pct) <= 3;
+    h += '<div style="margin-top:12px;background:' + (ok2 ? 'rgba(21,128,61,.06)' : 'rgba(220,38,38,.06)')
+       + ';border:1px solid ' + (ok2 ? 'rgba(21,128,61,.2)' : 'rgba(220,38,38,.2)')
+       + ';border-radius:6px;padding:9px 14px;font-size:11px;color:' + (ok2 ? '#15803d' : '#991b1b') + '">'
+       + (ok2 ? 'Écart inférieur à 3 % : la réconciliation peut être validée, puis la FNE générée et déposée au siège OCI.'
+              : 'Écart supérieur à 3 % : contacter Jean-Claude Kouamé avant d\'émettre la FNE. '
+                + 'Une FNE émise sur un montant contesté bloque tout le circuit.')
+       + '</div>';
+  }
+
+  h += '<div style="margin-top:12px;display:flex;justify-content:flex-end">'
+     + '<button onclick="finDeleteFacture(\'' + f.id + '\')" class="del-btn" '
+     + 'style="font-size:11px">Supprimer cette facture</button></div>';
+
+  h += '</div></td></tr>';
+  return h;
+}
+
+// ── Rendu ──────────────────────────────────────────────────────────────────
+
+function renderFinSuivi(s) {
+  var factures = (s.factures || []);
+  if (!factures.length) {
+    return '<div class="alert alert-info">Aucune facture enregistrée. '
+         + 'Ajoute-les depuis l\'onglet « Factures Op. ».</div>';
+  }
+  // Migration silencieuse à l'affichage, pour ne pas exiger une action manuelle.
+  var aMigrer = factures.filter(function (f) { return !f._v2; });
+  if (aMigrer.length) { setTimeout(finMigrerToutes, 0); }
+
+  var h = '';
+  var enCours = factures.filter(function (f) { return f.statut !== 'paye'; });
+  var montantDu = enCours.reduce(function (t, f) { return t + (+f.montant_snv || 0); }, 0);
+  var sansMontant = factures.filter(function (f) { return !f.montant_snv; });
+  var manquantes = finMoisManquants(s);
+  var bloquees = enCours.filter(function (f) {
+    var j = finJoursDepuisDerniereEtape(f);
+    return j !== null && j > 30;
+  });
+
+  h += '<div style="display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-bottom:14px">';
+  h += finCarteSuivi('Factures ouvertes', enCours.length, factures.length + ' au total', '#4f5bd5');
+  h += finCarteSuivi('Montant en attente', finFmtM(montantDu), 'XAF, hors payées', '#f59e0b');
+  h += finCarteSuivi('Sans montant saisi', sansMontant.length,
+                     sansMontant.length ? 'facturation impossible en l\'état' : 'tous renseignés',
+                     sansMontant.length ? '#ef4444' : '#22c55e');
+  h += finCarteSuivi('Mois non facturés', manquantes.length,
+                     manquantes.length ? 'trous dans la série' : 'série complète',
+                     manquantes.length ? '#ef4444' : '#22c55e');
+  h += '</div>';
+
+  if (manquantes.length) {
+    h += '<div style="background:#fef2f2;border:1px solid #fecaca;border-left:3px solid #ef4444;'
+       + 'border-radius:0 6px 6px 0;padding:11px 15px;margin-bottom:12px;font-size:11px;line-height:1.6;color:#7f1d1d">'
+       + '<strong style="color:#991b1b">' + manquantes.length + ' mois sans facture enregistrée.</strong> '
+       + manquantes.map(function (m) { return m.operateur + ' ' + m.mois + ' (' + m.type + ')'; }).join(' · ')
+       + '<div style="margin-top:7px"><button onclick="finCreerManquantes()" style="padding:5px 12px;background:#ef4444;'
+       + 'color:#fff;border:none;border-radius:5px;font-size:11px;font-weight:600;cursor:pointer">Créer ces factures</button></div>'
+       + '</div>';
+  }
+
+  h += '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
+  h += '<button onclick="finAddFacture()" class="btn btn-ok" style="font-size:12px">+ Nouvelle facture</button>';
+  h += '<button onclick="finExportSuiviXLSX()" style="padding:8px 16px;background:#16a34a;color:#fff;border:none;'
+     + 'border-radius:6px;font-size:12px;font-weight:600;cursor:pointer">Exporter en Excel</button>';
+  h += '<div style="margin-left:auto;font-size:11px;color:#64748b">Cliquer sur un mois ouvre la fiche : '
+     + 'montants, réconciliation, FNE, échéance, relance.</div>';
+  h += '</div>';
+
+  h += '<div style="background:#f8f9ff;border:1px solid #e2e6fb;border-left:3px solid #4f5bd5;border-radius:0 6px 6px 0;'
+     + 'padding:10px 14px;margin-bottom:16px;font-size:11px;line-height:1.6;color:#475569">'
+     + '<strong style="color:#0f172a">Saisie.</strong> Un clic sur une case la fait tourner : '
+     + '<span style="color:#f59e0b;font-weight:600">En cours</span> → '
+     + '<span style="color:#22c55e;font-weight:600">Fait</span> → vide. '
+     + 'La date se pose automatiquement au passage à « Fait ». Le statut de la facture suit '
+     + 'l\'étape la plus avancée — inutile de le tenir à jour ailleurs.</div>';
+
+  ['OCI', 'MTN'].forEach(function (op) {
+    var lot = factures.filter(function (f) { return f.operateur === op; })
+                      .sort(function (a, b) {
+                        return (b.mois || '').localeCompare(a.mois || '')
+                            || (a.type || '').localeCompare(b.type || '');
+                      });
+    if (!lot.length) return;
+    var etapes = finEtapesDe(op);
+
+    h += '<div style="margin-bottom:26px">';
+    h += '<div style="display:flex;align-items:center;gap:10px;margin-bottom:6px">'
+       + '<div style="font-size:14px;font-weight:700;color:#0f172a">Processus ' + op + '</div>'
+       + '<div style="font-size:11px;color:#94a3b8">' + etapes.length + ' étapes · ' + lot.length + ' facture(s)</div>'
+       + '</div>';
+    h += '<div style="font-size:10px;color:#64748b;margin-bottom:10px;line-height:1.7">';
+    FIN_RAPPELS[op].forEach(function (r) {
+      h += '<span style="display:inline-block;margin-right:16px"><strong style="color:#475569">'
+         + r[0] + ' :</strong> ' + r[1] + '</span>';
+    });
+    h += '</div>';
+
+    h += '<div style="overflow-x:auto;border:1px solid #e2e8f0;border-radius:8px;background:#fff">';
+    h += '<table style="border-collapse:collapse;font-size:11px;min-width:100%">';
+    h += '<thead><tr style="background:#f8fafc">';
+    h += '<th style="padding:8px 10px;text-align:left;font-size:9px;color:#64748b;text-transform:uppercase;'
+       + 'position:sticky;left:0;background:#f8fafc;z-index:2;border-right:1px solid #e2e8f0;min-width:118px">Facture</th>';
+    h += '<th style="padding:8px 10px;text-align:right;font-size:9px;color:#64748b;text-transform:uppercase;'
+       + 'border-right:1px solid #e2e8f0;min-width:92px">Montant</th>';
+    etapes.forEach(function (e, i) {
+      h += '<th style="padding:8px 5px;text-align:center;font-size:9px;color:#64748b;min-width:84px;'
+         + 'border-right:1px solid #f1f5f9;line-height:1.3">'
+         + '<div style="color:' + e.color + ';font-weight:700;margin-bottom:2px">' + (i + 1) + '</div>'
+         + e.label + '</th>';
+    });
+    h += '<th style="padding:8px 8px;text-align:left;font-size:9px;color:#64748b;text-transform:uppercase;'
+       + 'min-width:150px;border-left:1px solid #e2e8f0">Dernière action</th>';
+    h += '<th style="padding:8px 8px;text-align:left;font-size:9px;color:#64748b;text-transform:uppercase;'
+       + 'min-width:104px">Responsable</th>';
+    h += '</tr></thead><tbody>';
+
+    lot.forEach(function (f) {
+      finMigrerFacture(f);
+      var paye = f.statut === 'paye';
+      var jours = finJoursDepuisDerniereEtape(f);
+      var alerte = !paye && jours !== null && jours > 30;
+      var sansMt = !f.montant_snv;
+
+      var ouverte = (_finFicheOuverte === f.id);
+      // Signal de réconciliation, visible sans ouvrir la fiche.
+      var pctR = (f.montant_snv && f.montant_op)
+        ? (f.montant_snv - f.montant_op) / f.montant_snv * 100 : null;
+
+      h += '<tr style="border-top:1px solid #f1f5f9' + (paye ? ';opacity:.5' : '') + '">';
+      h += '<td onclick="finBasculerFiche(\'' + f.id + '\')" title="Ouvrir la fiche" '
+         + 'style="padding:6px 10px;position:sticky;left:0;cursor:pointer;background:'
+         + (ouverte ? '#eef0ff' : (alerte ? '#fef2f2' : '#fff'))
+         + ';z-index:1;border-right:1px solid #e2e8f0">'
+         + '<div style="font-weight:700;color:#0f172a">'
+         + '<span style="color:#94a3b8;font-size:9px;margin-right:4px">' + (ouverte ? '▾' : '▸') + '</span>'
+         + (f.mois || '—') + '</div>'
+         + '<div style="font-size:9px;color:#94a3b8;margin-left:13px">' + (f.type || '—') + '</div>'
+         + '<div style="font-size:9px;color:' + (paye ? '#22c55e' : '#64748b') + ';margin:2px 0 0 13px">'
+         + finLibelleStatut(f) + '</div></td>';
+
+      h += '<td style="padding:6px 10px;text-align:right;border-right:1px solid #e2e8f0;white-space:nowrap'
+         + (sansMt ? ';background:#fef2f2' : '') + '">'
+         + (sansMt
+            ? '<span onclick="finBasculerFiche(\'' + f.id + '\')" style="color:#ef4444;font-size:10px;cursor:pointer;'
+              + 'text-decoration:underline">à saisir</span>'
+            : finFmtM(f.montant_snv))
+         + (pctR !== null
+            ? '<div style="font-size:9px;color:' + (Math.abs(pctR) <= 3 ? '#15803d' : '#dc2626') + '">'
+              + 'écart ' + pctR.toFixed(1) + ' %</div>'
+            : '')
+         + '</td>';
+
+      etapes.forEach(function (e) {
+        var etat = finEtat(f, e.id);
+        var cfg = FIN_ETATS.find(function (x) { return x.id === etat; }) || FIN_ETATS[0];
+        var date = finDateEtape(f, e.id);
+        h += '<td style="padding:3px 4px;text-align:center;border-right:1px solid #f1f5f9;background:' + cfg.fond + '">';
+        h += '<div onclick="finCyclerEtape(\'' + f.id + '\',\'' + e.id + '\')" '
+           + 'title="' + e.label + ' — cliquer pour changer" '
+           + 'style="cursor:pointer;padding:4px 3px;border-radius:4px;border:1px solid '
+           + (etat ? cfg.color + '55' : '#e2e8f0') + ';font-size:10px;font-weight:700;color:'
+           + (etat ? cfg.color : '#cbd5e1') + ';background:#fff;user-select:none">'
+           + (cfg.court || '·') + '</div>';
+        if (etat === 'ok') {
+          h += '<input type="date" value="' + date + '" '
+             + 'onchange="finSetDateEtape(\'' + f.id + '\',\'' + e.id + '\',this.value)" '
+             + 'style="width:80px;margin-top:2px;padding:1px 2px;border:1px solid #e2e8f0;border-radius:3px;'
+             + 'font-size:9px;color:#64748b;background:#fff">';
+        }
+        h += '</td>';
+      });
+
+      h += '<td style="padding:5px 7px;border-left:1px solid #e2e8f0">'
+         + '<input type="text" value="' + String(f.derniere_action || '').replace(/"/g, '&quot;') + '" '
+         + 'placeholder="ex. Relancé le 05/08" '
+         + 'onchange="finSetChamp(\'' + f.id + '\',\'derniere_action\',this.value)" '
+         + 'style="width:100%;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px"></td>';
+      h += '<td style="padding:5px 7px">'
+         + '<input type="text" value="' + String(f.responsable || '').replace(/"/g, '&quot;') + '" '
+         + 'placeholder="ex. Papy" '
+         + 'onchange="finSetChamp(\'' + f.id + '\',\'responsable\',this.value)" '
+         + 'style="width:100%;padding:4px 6px;border:1px solid #e2e8f0;border-radius:4px;font-size:10px"></td>';
+      h += '</tr>';
+      if (ouverte) h += finLigneDetail(f, etapes.length + 4);
+    });
+
+    h += '</tbody></table></div></div>';
+  });
+
+  return h;
+}
+
+function finCarteSuivi(label, valeur, sous, couleur) {
+  return '<div class="card" style="border-top:2px solid ' + couleur + '">'
+    + '<div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.05em;margin-bottom:5px">'
+    + label + '</div>'
+    + '<div style="font-size:19px;font-weight:700;color:#0f172a;margin-bottom:2px">' + valeur + '</div>'
+    + '<div style="font-size:10px;color:#94a3b8">' + sous + '</div></div>';
+}
+
+function finFmtM(v) {
+  if (v == null || v === '') return '—';
+  return Number(v).toLocaleString('fr-FR');
+}
+
+// ── Export Excel ───────────────────────────────────────────────────────────
+// Reproduit la structure du suivi tenu à la main : une colonne par étape avec
+// « OK » ou « En cours », plus dernière action et responsable. La date de
+// réalisation part dans une feuille séparée pour ne pas alourdir la grille
+// principale, qui doit rester lisible à l'impression.
+function finExportSuiviXLSX() {
+  if (typeof XLSX === 'undefined') { alert('Bibliothèque Excel non chargée.'); return; }
+  var s = getFinState();
+  (s.factures || []).forEach(finMigrerFacture);
+  var factures = (s.factures || []);
+  if (!factures.length) { alert('Aucune facture à exporter.'); return; }
+
+  var wb = XLSX.utils.book_new();
+
+  ['OCI', 'MTN'].forEach(function (op) {
+    var lot = factures.filter(function (f) { return f.operateur === op; })
+                      .sort(function (a, b) { return (b.mois || '').localeCompare(a.mois || ''); });
+    if (!lot.length) return;
+    var etapes = finEtapesDe(op);
+
+    var entete = ['Mois', 'Type', 'Montant SNV (XAF)', 'Montant opérateur (XAF)', 'Statut actuel'];
+    etapes.forEach(function (e, i) { entete.push((i + 1) + '. ' + e.label); });
+    entete.push('Dernière action', 'Responsable', 'Jours depuis dernière étape', 'Notes');
+
+    var lignes = [entete];
+    lot.forEach(function (f) {
+      var l = [f.mois || '', f.type || '', f.montant_snv || '', f.montant_op || '', finLibelleStatut(f)];
+      etapes.forEach(function (e) {
+        var cfg = FIN_ETATS.find(function (x) { return x.id === finEtat(f, e.id); }) || FIN_ETATS[0];
+        l.push(cfg.court);
+      });
+      var j = finJoursDepuisDerniereEtape(f);
+      l.push(f.derniere_action || '', f.responsable || '', j === null ? '' : j, f.notes || '');
+      lignes.push(l);
+    });
+
+    var ws = XLSX.utils.aoa_to_sheet(lignes);
+    ws['!cols'] = [{ wch: 10 }, { wch: 12 }, { wch: 17 }, { wch: 19 }, { wch: 30 }]
+      .concat(etapes.map(function () { return { wch: 15 }; }))
+      .concat([{ wch: 26 }, { wch: 14 }, { wch: 12 }, { wch: 34 }]);
+    ws['!freeze'] = { xSplit: 1, ySplit: 1 };
+    XLSX.utils.book_append_sheet(wb, ws, 'Suivi ' + op);
+  });
+
+  // Feuille des dates : qui a fait quoi et quand, pour l'audit.
+  var d = [['Opérateur', 'Mois', 'Type', 'Étape', 'État', 'Date']];
+  factures.forEach(function (f) {
+    finEtapesDe(f.operateur).forEach(function (e) {
+      var etat = finEtat(f, e.id);
+      if (!etat) return;
+      var cfg = FIN_ETATS.find(function (x) { return x.id === etat; });
+      d.push([f.operateur, f.mois, f.type || '', e.label, cfg.label, finDateEtape(f, e.id)]);
+    });
+  });
+  var wsd = XLSX.utils.aoa_to_sheet(d);
+  wsd['!cols'] = [{ wch: 11 }, { wch: 10 }, { wch: 12 }, { wch: 32 }, { wch: 11 }, { wch: 13 }];
+  XLSX.utils.book_append_sheet(wb, wsd, 'Dates détaillées');
+
+  var infos = [['Processus', 'Élément', 'Référence']];
+  Object.keys(FIN_RAPPELS).forEach(function (op) {
+    FIN_RAPPELS[op].forEach(function (r) { infos.push([op, r[0], r[1]]); });
+  });
+  infos.push([], ['Export généré le', new Date().toISOString().slice(0, 10), '']);
+  var manq = finMoisManquants(s);
+  if (manq.length) {
+    infos.push([], ['MOIS SANS FACTURE ENREGISTRÉE', '', '']);
+    manq.forEach(function (m) { infos.push([m.operateur, m.mois, m.type]); });
+  }
+  var wsi = XLSX.utils.aoa_to_sheet(infos);
+  wsi['!cols'] = [{ wch: 16 }, { wch: 24 }, { wch: 48 }];
+  XLSX.utils.book_append_sheet(wb, wsi, 'Références');
+
+  XLSX.writeFile(wb, 'SNV_Suivi_Factures_' + new Date().toISOString().slice(0, 10) + '.xlsx');
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// REGISTRE DES CONSTATS
+// ═══════════════════════════════════════════════════════════════════════════
+// Mémoire analytique du BIC. Chaque constat est un résultat daté, avec sa
+// méthode, ses sources et son niveau de preuve — pour qu'on sache dans six
+// mois d'où vient un chiffre et à quel point on peut s'y fier.
+//
+// Trois niveaux, et la distinction compte :
+//   ETABLI    — retrouvé par au moins deux méthodes indépendantes. Utilisable
+//               comme paramètre de décision.
+//   MESURE    — mesuré une fois, proprement, mais sans recoupement. Utilisable
+//               avec prudence, à reconfirmer.
+//   HYPOTHESE — posé faute de mieux. Ne jamais présenter comme un fait.
+//
+// Le registre est stocké en local et peut être enrichi depuis l'interface :
+// les constats du socle sont réinjectés à chaque chargement s'ils manquent,
+// ceux ajoutés à la main sont conservés.
+
+const CONSTATS_KEY = 'snv_constats_v1';
+
+const CONSTATS_NIVEAUX = {
+  ETABLI:    { label:'Établi',      couleur:'#16a34a', fond:'#f0fdf4', bord:'#bbf7d0',
+               aide:'Retrouvé par au moins deux méthodes indépendantes' },
+  MESURE:    { label:'Mesuré 1×',   couleur:'#f59e0b', fond:'#fffbeb', bord:'#fde68a',
+               aide:'Mesuré proprement mais sans recoupement — à reconfirmer' },
+  HYPOTHESE: { label:'Hypothèse',   couleur:'#ef4444', fond:'#fef2f2', bord:'#fecaca',
+               aide:'Posé faute de mieux — ne pas présenter comme un fait' },
+};
+
+const CONSTATS_THEMES = {
+  cycle:    'Cycle de vie',
+  monet:    'Monétisation',
+  cohorte:  'Cohortes',
+  qualite:  'Qualité des données',
+  bcase:    'Business case',
+};
+
+// ── Socle : ce qu'on a établi entre juin et août 2026 ──────────────────────
+const CONSTATS_SOCLE = [
+  {
+    id:'c001', date:'2026-08-05', theme:'cycle', niveau:'ETABLI',
+    titre:'Règle de désactivation : J+5 après le premier prélèvement',
+    valeur:'1 jour de grâce + 3 jours de suspension',
+    detail:"Un abonné recruté le jour J subit sa première tentative de prélèvement à J+1. En cas d'échec : "
+         + "un jour de grâce, trois jours de suspension, puis désactivation automatique à J+5. "
+         + "Life TV tourne sur une configuration plus courte, sortie à J+3.",
+    methode:"Régression à retards échelonnés des sorties quotidiennes sur les recrutements des 9 jours "
+          + "précédents. Le pic tombe sur un seul décalage, avec des coefficients proches de zéro ailleurs — "
+          + "signature d'une règle automatique et non d'un comportement.",
+    preuve:"Flash Foot R²=0,87 · AL Bayane R²=0,81 · 7Info R²=0,93. Confirmé indépendamment par la règle "
+         + "communiquée par MTN, et par les transitions ActivetoGrace / GracetoSuspend / SuspendtoDeactive "
+         + "du rapport 6D.",
+    sources:['CRM · historique journalier','MTN · règle contractuelle','6D · Subscriber base report'],
+  },
+  {
+    id:'c002', date:'2026-08-05', theme:'cycle', niveau:'ETABLI',
+    titre:'Deux tiers des recrues non facturées sortent',
+    valeur:'66,8 % à 68,3 %',
+    detail:"Sur quatre canaux aux contenus, prix et audiences très différents, la part des recrues jamais "
+         + "prélevées qui finissent désactivées tient dans un intervalle d'un point et demi. "
+         + "C'est un paramètre système, pas un comportement d'utilisateur.",
+    methode:"Appariement nominatif MSISDN sur la cohorte non censurée du 24-26 juillet, croisé avec la "
+          + "régression à retards sur les agrégats journaliers.",
+    preuve:"Deux sources sans rien de commun donnent le même chiffre : 66,8 / 66,9 / 68,0 / 68,3 % côté "
+         + "MSISDN, mode autour de 68 % côté régression.",
+    sources:['MSISDN · export hebdomadaire','CRM · historique journalier'],
+  },
+  {
+    id:'c003', date:'2026-08-05', theme:'monet', niveau:'ETABLI',
+    titre:'Bascule de régime au 28 juin 2026',
+    valeur:'Récupération 19,1 % → 2,8 %',
+    detail:"Le lancement des campagnes Balance+ change tout le régime du service. Avant : 712 recrues/jour, "
+         + "récupération grâce+suspension de 19,1 %, prix moyen 243 F, revenu 4 007 F/jour. "
+         + "Après : 1 111 recrues/jour, récupération 2,8 %, prix moyen 92 F, revenu 25 281 F/jour.",
+    methode:"Série quotidienne 6D sur 62 jours consécutifs. Le basculement est daté au jour près : "
+          + "4 283 recrutements le 28 juin contre environ 700 les jours précédents.",
+    preuve:"Mesure directe, sans modélisation. Le mécanisme de rattrapage n'a pas changé — c'est la "
+         + "population recrutée qui a changé.",
+    sources:['6D · rapports quotidiens juin à août'],
+  },
+  {
+    id:'c004', date:'2026-08-05', theme:'monet', niveau:'ETABLI',
+    titre:'Le palier 10 F est devenu le premier palier du service',
+    valeur:'44,4 % des transactions, 4,8 % du revenu',
+    detail:"En juillet 2026, le palier 10 F représente 3 347 transactions sur 7 538. À l'inverse le palier "
+         + "300 F fait 13,8 % des transactions mais 44,5 % du revenu. Deux populations distinctes, "
+         + "invisibles dans la moyenne de 93 F.",
+    methode:"Rapport Pricepoint 6D, transactions déduites du revenu divisé par le palier.",
+    preuve:"Avant Balance+ le palier 10 F pesait 3,8 % des transactions. Le prix moyen encaissé est passé "
+         + "de 243 F à 92 F sur la même période.",
+    sources:['6D · Pricepoint wise revenue'],
+  },
+  {
+    id:'c005', date:'2026-08-05', theme:'qualite', niveau:'ETABLI',
+    titre:'Le CRM stocke du TTC, les rapports MTN du HT',
+    valeur:'Rapport 1,1805',
+    detail:"Découvert en écrivant le contrôle de réconciliation. Les deux sources mesurent la même chose "
+         + "mais pas sur la même base fiscale. Toute comparaison directe entre un chiffre du CRM et un "
+         + "chiffre MTN doit passer par une division par 1,18.",
+    methode:"Rapprochement du revenu quotidien MTN CIV entre les deux sources sur les 50 jours communs.",
+    preuve:"1,1805 au total sur juillet, et entre 1,15 et 1,25 sur chacun des huit canaux actifs. "
+         + "Un écart résiduel de 10,4 % subsiste après retraitement et reste inexpliqué.",
+    sources:['CRM · historique journalier','6D · Offer wise revenue'],
+  },
+  {
+    id:'c006', date:'2026-08-05', theme:'qualite', niveau:'ETABLI',
+    titre:'Libellés de gateway inversés dans les exports MSISDN',
+    valeur:'100 % des cas',
+    detail:"Tous les numéros étiquetés MTN CIV portent l'indicatif 237 (Cameroun), tous ceux étiquetés "
+         + "MTN CMR portent l'indicatif 225 (Côte d'Ivoire). Systématique sur les trois fichiers du zip. "
+         + "Toute analyse filtrant sur le libellé porte sur le mauvais pays.",
+    methode:"Comparaison de l'indicatif téléphonique réel avec le pays annoncé dans le libellé.",
+    preuve:"Vérifié sur 584 209 événements. Aucune exception.",
+    sources:['MSISDN · export hebdomadaire'],
+  },
+  {
+    id:'c007', date:'2026-08-05', theme:'cohorte', niveau:'MESURE',
+    titre:'Deux recrues sur trois partent en une semaine',
+    valeur:'65,4 % de sorties',
+    detail:"Cohorte de 11 928 abonnés recrutés du 24 au 26 juillet, suivie jusqu'au 2 août soit 7 à 9 jours. "
+         + "Dispersion de trois points seulement entre les quatre canaux : 65,0 % Flash Foot, 66,1 % "
+         + "AL Bayane, 66,2 % 7Info, 68,3 % Life TV.",
+    methode:"Cohorte identifiée par différence entre deux fenêtres MSISDN qui se recouvrent, ce qui élimine "
+          + "le biais de censure : sur une fenêtre trop courte, sortir tôt réduit mécaniquement les chances "
+          + "d'avoir été facturé.",
+    preuve:"Appariement nominatif. Une seule semaine d'observation — à refaire sur plusieurs semaines.",
+    sources:['MSISDN · fenêtres 24-30 juillet et 27 juillet-2 août'],
+  },
+  {
+    id:'c008', date:'2026-08-05', theme:'cohorte', niveau:'MESURE',
+    titre:'Seules 4 à 6 % des recrues sont facturées',
+    valeur:'5,7 % sur la cohorte',
+    detail:"C'est le goulot réel du modèle. Le problème n'est pas la rétention mais la première collecte : "
+         + "un abonné jamais prélevé est désactivé à J+5. Un survivant a 3,1 fois plus de chances d'avoir "
+         + "été facturé qu'un sortant — 10,2 % contre 3,3 %.",
+    methode:"Croisement des fichiers newsubs et billed sur la cohorte non censurée.",
+    preuve:"Mesure directe. Une seule cohorte observée.",
+    sources:['MSISDN · export hebdomadaire'],
+  },
+  {
+    id:'c009', date:'2026-08-05', theme:'cohorte', niveau:'MESURE',
+    titre:'Les survivants portent 62 à 86 % du revenu',
+    valeur:'35 % des recrues, 63 % du revenu au minimum',
+    detail:"Les 4 131 survivants de la cohorte génèrent 422 facturations contre 255 pour les 7 797 sortants. "
+         + "La fourchette vient de l'incertitude sur le prix : les fichiers MSISDN ne portent aucun montant. "
+         + "En attribuant les paliers pleins aux survivants, leur part monte à 86 %.",
+    methode:"Facturations comptées nominativement, revenu réparti au prorata puis encadré par la structure "
+          + "des paliers 6D.",
+    preuve:"Les effectifs et facturations sont exacts. La répartition du revenu est encadrée, pas mesurée.",
+    sources:['MSISDN · export hebdomadaire','6D · Pricepoint wise revenue'],
+  },
+  {
+    id:'c010', date:'2026-08-05', theme:'monet', niveau:'MESURE',
+    titre:'Rester actif ne veut plus dire payer le plein tarif',
+    valeur:'Ratio 1,0 en juin → 2,7 en juillet',
+    detail:"Le rapport entre les transitions actif→actif et les transactions à plein tarif valait 1,0 du "
+         + "8 au 27 juin : rester abonné signifiait payer 295 ou 300 F. Depuis Balance+, le ratio monte à "
+         + "2,7 et jusqu'à 6,1. On reste désormais abonné en payant 10 à 60 F.",
+    methode:"Rapprochement des transitions 6D avec la ventilation par palier tarifaire.",
+    preuve:"Mesuré sur 62 jours. La bascule est nette mais l'interprétation reste à confirmer avec MTN.",
+    sources:['6D · Subscriber base report','6D · Pricepoint wise revenue'],
+  },
+  {
+    id:'c011', date:'2026-08-05', theme:'bcase', niveau:'HYPOTHESE',
+    titre:'Revenu par recrue : entre 10 et 25 F',
+    valeur:'10,1 F mesuré, 16 à 25 F corrigé',
+    detail:"Flash Foot juillet donne 407 660 XAF pour 40 465 recrues, soit 10,1 F. Mais ce calcul tronque "
+         + "la queue : 69 % du recrutement a eu lieu après le 21 juillet, donc une partie du revenu tombe "
+         + "en août. Corrigé par la courbe de survie, l'ordre de grandeur monte à 16-25 F selon l'hypothèse "
+         + "retenue sur les survivants de long terme.",
+    methode:"Trois méthodes confrontées. Deux étaient fausses : diviser le revenu de tous les canaux par "
+          + "les recrues de tous les canaux attribue aux recrues de Flash Foot le revenu des bases dormantes.",
+    preuve:"Le paramètre reste ouvert. Sept semaines de données ne permettent pas d'observer la valeur "
+         + "d'une cohorte au-delà de cinq semaines.",
+    sources:['CRM · historique journalier','MSISDN · export hebdomadaire'],
+  },
+  {
+    id:'c012', date:'2026-08-05', theme:'bcase', niveau:'ETABLI',
+    titre:'Le prix affiché ne décrit pas ce qui est encaissé',
+    valeur:'295 F affiché, 93 F encaissé',
+    detail:"Sur l'ensemble du parc MTN CIV, le prix moyen encaissé par prélèvement est de 94,8 F côté CRM "
+         + "et 98,0 F côté MTN. Flash Foot descend à 66,9 F parce qu'il recrute massivement des profils à "
+         + "faible solde. Raisonner en tarif catalogue fausse tout calcul de revenu.",
+    methode:"Revenu divisé par nombre de prélèvements, sur deux sources indépendantes.",
+    preuve:"Écart de 3 % entre les deux sources sur 50 jours communs.",
+    sources:['CRM · historique journalier','6D · Pricepoint wise revenue'],
+  },
+];
+
+function getConstats() {
+  var stockes = [];
+  try { stockes = JSON.parse(localStorage.getItem(CONSTATS_KEY) || '[]') || []; } catch(e) { stockes = []; }
+  // Réinjection du socle : un constat de référence supprimé par erreur revient,
+  // mais les ajouts manuels et les modifications de niveau sont conservés.
+  var parId = {};
+  stockes.forEach(function(c){ parId[c.id] = c; });
+  CONSTATS_SOCLE.forEach(function(c){ if (!parId[c.id]) stockes.push(c); });
+  return stockes.sort(function(a,b){ return (b.date||'').localeCompare(a.date||''); });
+}
+
+function setConstats(liste) {
+  localStorage.setItem(CONSTATS_KEY, JSON.stringify(liste));
+  if (typeof gistPush === 'function') gistPush();
+  if (typeof crmBackupWriteDebounced === 'function') crmBackupWriteDebounced();
+}
+
+var _constatFiltre = 'tous';
+var _constatOuvert = null;
+
+function constatFiltrer(v) { _constatFiltre = v; renderInsights(); }
+function constatBasculer(id) { _constatOuvert = (_constatOuvert === id) ? null : id; renderInsights(); }
+
+function constatAjouter() {
+  var titre = prompt('Titre du constat :');
+  if (!titre) return;
+  var valeur = prompt('Chiffre ou résultat clé :') || '';
+  var niveau = (prompt('Niveau de preuve : ETABLI, MESURE ou HYPOTHESE', 'MESURE') || 'MESURE').toUpperCase();
+  if (!CONSTATS_NIVEAUX[niveau]) niveau = 'MESURE';
+  var liste = getConstats();
+  liste.unshift({
+    id: 'c' + Date.now(), date: new Date().toISOString().slice(0,10),
+    theme: 'cohorte', niveau: niveau, titre: titre, valeur: valeur,
+    detail: prompt('Ce que ça dit (facultatif) :') || '',
+    methode: prompt('Comment ça a été mesuré (facultatif) :') || '',
+    preuve: '', sources: [], manuel: true
+  });
+  setConstats(liste);
+  renderInsights();
+}
+
+function constatSupprimer(id) {
+  if (!confirm('Supprimer ce constat ?')) return;
+  setConstats(getConstats().filter(function(c){ return c.id !== id; }));
+  renderInsights();
+}
+
+function constatChangerNiveau(id, niveau) {
+  var liste = getConstats();
+  var c = liste.find(function(x){ return x.id === id; });
+  if (c) { c.niveau = niveau; setConstats(liste); renderInsights(); }
+}
+
+// ── Rendu ──────────────────────────────────────────────────────────────────
+
+function renderConstats() {
+  var liste = getConstats();
+  var cnt = { ETABLI:0, MESURE:0, HYPOTHESE:0 };
+  liste.forEach(function(c){ if (cnt[c.niveau] !== undefined) cnt[c.niveau]++; });
+
+  var h = '<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:16px 18px;margin-bottom:18px">';
+
+  h += '<div style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:10px;margin-bottom:4px">';
+  h += '<div><div style="font-size:14px;font-weight:700;color:#0f172a">Registre des constats</div>'
+     + '<div style="font-size:11px;color:#94a3b8;margin-top:2px">Ce que nos analyses ont établi, avec la méthode et le niveau de preuve</div></div>';
+  h += '<button onclick="constatAjouter()" style="padding:5px 12px;background:#eef0ff;border:1px solid #d6dbfb;'
+     + 'color:#3f47b8;border-radius:6px;font-size:11px;font-weight:600;cursor:pointer">+ Ajouter un constat</button>';
+  h += '</div>';
+
+  // Filtres par niveau
+  h += '<div style="display:flex;gap:6px;margin:12px 0 14px;flex-wrap:wrap">';
+  var tous = liste.length;
+  h += constatBoutonFiltre('tous', 'Tous', tous, '#64748b');
+  ['ETABLI','MESURE','HYPOTHESE'].forEach(function(n){
+    h += constatBoutonFiltre(n, CONSTATS_NIVEAUX[n].label, cnt[n], CONSTATS_NIVEAUX[n].couleur);
+  });
+  h += '</div>';
+
+  var visibles = liste.filter(function(c){ return _constatFiltre === 'tous' || c.niveau === _constatFiltre; });
+  if (!visibles.length) {
+    h += '<div style="font-size:11px;color:#94a3b8;padding:10px 0">Aucun constat pour ce filtre.</div>';
+  }
+
+  visibles.forEach(function(c){
+    var n = CONSTATS_NIVEAUX[c.niveau] || CONSTATS_NIVEAUX.MESURE;
+    var ouvert = (_constatOuvert === c.id);
+    h += '<div style="border:1px solid ' + n.bord + ';border-left:3px solid ' + n.couleur
+       + ';border-radius:0 8px 8px 0;background:' + n.fond + ';margin-bottom:8px;overflow:hidden">';
+
+    // En-tête cliquable
+    h += '<div onclick="constatBasculer(\'' + c.id + '\')" style="padding:10px 14px;cursor:pointer;display:flex;'
+       + 'justify-content:space-between;align-items:flex-start;gap:12px">';
+    h += '<div style="flex:1;min-width:0">'
+       + '<div style="font-size:12px;font-weight:700;color:#0f172a;line-height:1.4">'
+       + '<span style="color:#94a3b8;font-size:9px;margin-right:5px">' + (ouvert ? '▾' : '▸') + '</span>'
+       + c.titre + '</div>'
+       + '<div style="font-size:11px;color:' + n.couleur + ';font-weight:700;margin:3px 0 0 13px">' + c.valeur + '</div>'
+       + '</div>';
+    h += '<div style="text-align:right;white-space:nowrap">'
+       + '<span title="' + n.aide + '" style="background:' + n.couleur + ';color:#fff;padding:2px 8px;'
+       + 'border-radius:10px;font-size:9px;font-weight:700">' + n.label + '</span>'
+       + '<div style="font-size:9px;color:#94a3b8;margin-top:4px">' + (CONSTATS_THEMES[c.theme] || c.theme)
+       + ' · ' + c.date + '</div></div>';
+    h += '</div>';
+
+    if (ouvert) {
+      h += '<div style="padding:0 14px 12px 27px;border-top:1px solid ' + n.bord + '">';
+      if (c.detail)  h += constatBlocDetail('Ce que ça dit', c.detail);
+      if (c.methode) h += constatBlocDetail('Comment c\'est mesuré', c.methode);
+      if (c.preuve)  h += constatBlocDetail('Niveau de preuve', c.preuve);
+      if (c.sources && c.sources.length) {
+        h += '<div style="margin-top:10px">';
+        c.sources.forEach(function(s){
+          h += '<span style="display:inline-block;background:#fff;border:1px solid #e2e8f0;color:#64748b;'
+             + 'padding:2px 8px;border-radius:4px;font-size:9px;margin:0 4px 4px 0">' + s + '</span>';
+        });
+        h += '</div>';
+      }
+      h += '<div style="margin-top:10px;display:flex;gap:6px;align-items:center;flex-wrap:wrap">';
+      h += '<span style="font-size:9px;color:#94a3b8">Reclasser :</span>';
+      ['ETABLI','MESURE','HYPOTHESE'].forEach(function(nv){
+        if (nv === c.niveau) return;
+        h += '<button onclick="event.stopPropagation();constatChangerNiveau(\'' + c.id + '\',\'' + nv + '\')" '
+           + 'style="padding:2px 8px;background:#fff;border:1px solid ' + CONSTATS_NIVEAUX[nv].bord
+           + ';color:' + CONSTATS_NIVEAUX[nv].couleur + ';border-radius:4px;font-size:9px;cursor:pointer">'
+           + CONSTATS_NIVEAUX[nv].label + '</button>';
+      });
+      if (c.manuel) {
+        h += '<button onclick="event.stopPropagation();constatSupprimer(\'' + c.id + '\')" '
+           + 'style="margin-left:auto;padding:2px 8px;background:#fff;border:1px solid #fecaca;color:#ef4444;'
+           + 'border-radius:4px;font-size:9px;cursor:pointer">Supprimer</button>';
+      }
+      h += '</div></div>';
+    }
+    h += '</div>';
+  });
+
+  h += '<div style="font-size:9px;color:#94a3b8;margin-top:10px;line-height:1.6">'
+     + '<strong>Établi</strong> : retrouvé par au moins deux méthodes indépendantes, utilisable comme paramètre de décision. · '
+     + '<strong>Mesuré 1×</strong> : mesuré proprement mais sans recoupement, à reconfirmer. · '
+     + '<strong>Hypothèse</strong> : posé faute de mieux, ne jamais présenter comme un fait.</div>';
+  h += '</div>';
+  return h;
+}
+
+function constatBoutonFiltre(val, label, n, couleur) {
+  var actif = (_constatFiltre === val);
+  return '<button onclick="constatFiltrer(\'' + val + '\')" style="padding:4px 11px;border-radius:6px;'
+       + 'font-size:10px;font-weight:600;cursor:pointer;border:1px solid ' + (actif ? couleur : '#e2e8f0')
+       + ';background:' + (actif ? couleur : '#fff') + ';color:' + (actif ? '#fff' : '#64748b') + '">'
+       + label + ' <span style="opacity:.7">' + n + '</span></button>';
+}
+
+function constatBlocDetail(titre, texte) {
+  return '<div style="margin-top:10px">'
+       + '<div style="font-size:9px;color:#94a3b8;text-transform:uppercase;letter-spacing:.04em;margin-bottom:3px">'
+       + titre + '</div>'
+       + '<div style="font-size:11px;color:#475569;line-height:1.65">' + texte + '</div></div>';
+}
+
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// DONNÉES 6D — rapports quotidiens MTN / 6D Technologies
+// ═══════════════════════════════════════════════════════════════════════════
+// Le CRM ne peut pas produire trois indicateurs que ces rapports portent :
+// le taux de récupération depuis la grâce et la suspension, la ventilation
+// par palier tarifaire, et le stade exact où l'abonné décroche.
+//
+// Format compact pour tenir dans le fichier :
+//   cycle[date]   = [nouveaux, actif→actif, actif→grâce, grâce→actif,
+//                    grâce→suspension, suspension→actif, suspension→désab.]
+//   paliers[date] = { montant_du_palier : revenu_encaissé }
+//
+// Le socle ci-dessous couvre le 1er juin au 3 août 2026. Les imports
+// ultérieurs viennent s'y ajouter sans l'écraser.
+const SIXD_SEED = {"cycle":{"2026-06-01":[754,0,0,8,0,0,0],"2026-06-02":[837,0,0,5,0,1,0],"2026-06-03":[765,0,0,3,0,2,0],"2026-06-04":[683,0,0,3,0,0,0],"2026-06-05":[908,0,0,5,0,1,0],"2026-06-06":[619,0,0,3,0,0,0],"2026-06-07":[757,0,0,3,0,1,0],"2026-06-08":[663,13,13,5,1,0,0],"2026-06-09":[789,37,34,3,19,4,51],"2026-06-10":[338,16,27,4,13,1,17],"2026-06-11":[638,16,12,4,24,1,22],"2026-06-12":[861,18,27,1,15,0,23],"2026-06-13":[631,23,26,3,18,0,32],"2026-06-14":[1052,11,34,1,4,2,20],"2026-06-15":[782,19,32,1,21,0,9],"2026-06-16":[800,33,24,7,25,0,22],"2026-06-17":[597,12,19,2,29,0,21],"2026-06-18":[537,12,27,3,24,1,27],"2026-06-19":[800,12,19,4,18,0,22],"2026-06-20":[723,18,20,4,15,0,22],"2026-06-21":[652,10,15,4,26,0,14],"2026-06-22":[485,18,16,1,19,0,25],"2026-06-23":[816,24,28,1,18,0,19],"2026-06-24":[631,9,17,2,16,0,18],"2026-06-25":[667,12,38,3,15,0,14],"2026-06-26":[685,13,71,1,25,2,14],"2026-06-27":[754,16,36,2,20,0,27],"2026-06-28":[4283,43,854,3,37,1,21],"2026-06-29":[1670,216,4262,19,151,1,27],"2026-07-01":[784,80,597,68,929,6,459],"2026-07-02":[709,53,57,43,3915,8,954],"2026-07-03":[746,40,38,24,2046,14,3903],"2026-07-04":[755,25,33,14,875,15,2032],"2026-07-05":[670,18,26,11,95,2,859],"2026-07-06":[674,33,52,30,1763,6,262],"2026-07-07":[747,52,488,10,77,11,1796],"2026-07-08":[1445,59,790,13,195,8,81],"2026-07-09":[1702,103,1921,15,118,5,192],"2026-07-10":[663,109,1275,33,638,8,162],"2026-07-11":[906,68,446,36,555,6,630],"2026-07-12":[990,76,390,23,1708,8,534],"2026-07-13":[937,100,1019,19,1210,5,1695],"2026-07-14":[1304,299,5174,63,1594,13,1893],"2026-07-15":[371,161,2071,71,506,9,998],"2026-07-16":[1062,146,1140,64,1079,11,1354],"2026-07-17":[727,113,1185,41,5489,23,1092],"2026-07-18":[1026,173,1007,39,2329,21,5444],"2026-07-19":[1195,168,2051,35,1125,12,2349],"2026-07-20":[2332,131,1337,53,1313,9,1111],"2026-07-21":[1201,316,4531,41,1458,12,1301],"2026-07-22":[1105,266,3150,56,2091,15,1170],"2026-07-23":[1543,293,2795,40,1597,11,2506],"2026-07-24":[527,252,3244,75,2504,14,1384],"2026-07-25":[2419,332,4213,68,1547,15,2486],"2026-07-26":[2279,287,3563,77,1750,9,1619],"2026-07-27":[455,255,3171,66,2626,17,1717],"2026-07-28":[2224,364,3877,80,2702,15,2627],"2026-07-29":[287,346,3268,71,2929,14,2684],"2026-07-30":[682,228,2252,76,2961,17,3014],"2026-08-01":[558,320,4290,69,2103,20,2943],"2026-08-02":[668,163,220,58,2017,8,2252],"2026-08-03":[642,116,496,54,2036,16,2448]},"paliers":{"2026-06-01":{"295":885,"300":1500},"2026-06-02":{"295":590,"300":1200},"2026-06-03":{"200":200,"295":590,"300":600},"2026-06-04":{"150":150,"295":295,"300":600},"2026-06-05":{"200":400,"295":885,"300":300},"2026-06-06":{"200":200,"300":600},"2026-06-07":{"200":200,"300":900},"2026-06-08":{"10":10,"60":120,"200":200,"295":295,"300":3900},"2026-06-09":{"10":20,"30":60,"60":60,"150":600,"200":1400,"295":590,"300":7800},"2026-06-10":{"10":10,"25":25,"60":180,"150":300,"200":400,"295":295,"300":3300},"2026-06-11":{"10":30,"60":180,"150":150,"200":200,"295":590,"300":3600},"2026-06-12":{"10":20,"60":180,"150":150,"295":885,"300":3000},"2026-06-13":{"10":10,"30":60,"60":60,"150":150,"200":800,"295":1180,"300":3900},"2026-06-14":{"30":30,"200":200,"295":295,"300":3300},"2026-06-15":{"10":10,"150":150,"200":200,"295":885,"300":4200},"2026-06-16":{"10":30,"25":25,"60":120,"150":450,"200":1200,"295":590,"300":6900},"2026-06-17":{"10":10,"25":25,"30":30,"60":120,"150":150,"200":200,"300":2100},"2026-06-18":{"25":50,"60":180,"295":295,"300":3000},"2026-06-19":{"30":60,"60":60,"200":200,"295":885,"300":2700},"2026-06-20":{"60":120,"150":150,"200":400,"295":1475,"300":3600},"2026-06-21":{"25":25,"60":60,"150":300,"200":600,"295":590,"300":1500},"2026-06-22":{"30":30,"200":200,"295":885,"300":4200},"2026-06-23":{"60":180,"150":150,"200":1000,"295":590,"300":4200},"2026-06-24":{"25":25,"60":60,"150":300,"200":200,"300":1800},"2026-06-25":{"60":120,"200":200,"295":295,"300":3300},"2026-06-26":{"10":20,"30":30,"60":120,"150":150,"200":200,"295":590,"300":2100},"2026-06-27":{"150":300,"200":200,"295":1180,"300":3300},"2026-06-28":{"10":80,"25":75,"30":600,"60":780,"150":600,"200":400,"295":2065,"300":1500},"2026-06-29":{"10":1120,"25":350,"30":270,"60":3120,"150":3150,"200":1000,"295":3835,"300":11100},"2026-06-30":{"10":580,"25":125,"30":930,"60":1680,"150":1650,"200":1400,"295":4130,"300":8100},"2026-07-01":{"10":610,"25":100,"30":240,"60":1320,"150":1350,"295":5605,"300":9600},"2026-07-02":{"10":410,"25":75,"30":150,"60":1080,"150":750,"200":400,"295":3245,"300":5700},"2026-07-03":{"10":300,"25":25,"30":90,"60":480,"150":900,"200":400,"295":4130,"300":4200},"2026-07-04":{"10":170,"30":60,"60":540,"150":1050,"295":2065,"300":3600},"2026-07-05":{"10":110,"25":25,"30":60,"60":240,"150":300,"295":1475,"300":1800},"2026-07-06":{"10":240,"25":75,"30":90,"60":1560,"150":1500,"200":600,"295":2655,"300":6000},"2026-07-07":{"10":350,"25":125,"30":120,"60":1020,"150":1650,"200":1200,"295":1180,"300":7200},"2026-07-08":{"10":280,"25":200,"30":240,"60":900,"150":1350,"200":1400,"295":3245,"300":5100},"2026-07-09":{"10":330,"25":150,"30":720,"60":1860,"150":750,"200":600,"295":4130,"300":5100},"2026-07-10":{"10":310,"30":1020,"60":2100,"150":2400,"200":600,"295":6490,"300":3300},"2026-07-11":{"10":410,"25":25,"30":300,"60":1200,"150":1050,"200":200,"295":6785,"300":5100},"2026-07-12":{"10":510,"25":25,"30":210,"60":1260,"150":1500,"295":3245,"300":4200},"2026-07-13":{"10":580,"30":510,"60":1860,"150":1500,"200":200,"295":3540,"300":6900},"2026-07-14":{"10":1120,"25":175,"30":2940,"60":4800,"150":6750,"200":2400,"295":15340,"300":15600},"2026-07-15":{"10":800,"25":75,"30":1020,"60":2040,"150":3600,"200":600,"295":10915,"300":9600},"2026-07-16":{"10":890,"25":175,"30":600,"60":2640,"150":1950,"200":1000,"295":7965,"300":7800},"2026-07-17":{"10":760,"25":250,"30":420,"60":1740,"150":900,"200":600,"295":6195,"300":6600},"2026-07-18":{"10":1140,"25":100,"30":960,"60":2340,"150":3600,"295":2065,"300":9000},"2026-07-19":{"10":890,"25":25,"30":1290,"60":1740,"150":2850,"200":200,"295":3245,"300":8400},"2026-07-20":{"10":930,"30":480,"60":1860,"150":1950,"200":600,"295":5900,"300":7800},"2026-07-21":{"10":2160,"25":1075,"30":390,"60":4500,"150":3450,"200":2600,"295":6490,"300":18600},"2026-07-22":{"10":1950,"25":325,"30":360,"60":2640,"150":3300,"200":1800,"295":5900,"300":10200},"2026-07-23":{"10":2290,"25":25,"30":690,"60":2640,"150":3450,"200":400,"295":2655,"300":11100},"2026-07-24":{"10":1800,"25":150,"30":750,"60":2820,"150":4350,"200":400,"295":5605,"300":15000},"2026-07-25":{"10":2500,"25":50,"30":810,"60":3180,"150":4800,"200":400,"295":6195,"300":15300},"2026-07-26":{"10":2170,"25":25,"30":600,"60":3060,"150":4650,"200":200,"295":5605,"300":17100},"2026-07-27":{"10":1850,"30":660,"60":2880,"150":1800,"200":800,"295":4720,"300":16200},"2026-07-28":{"10":2610,"25":275,"30":930,"60":4020,"150":3900,"200":2000,"295":4720,"300":22800},"2026-07-29":{"10":2000,"25":875,"30":420,"60":3540,"150":4350,"200":3400,"295":4425,"300":22200},"2026-07-30":{"10":1590,"25":450,"30":570,"60":2580,"150":3450,"200":1600,"295":6490,"300":13200},"2026-07-31":{"10":1410,"25":750,"30":510,"60":2340,"150":3450,"200":3800,"295":6195,"300":18600},"2026-08-01":{"10":1800,"25":725,"30":420,"60":3060,"150":3750,"200":3600,"295":4425,"300":23100},"2026-08-02":{"10":1230,"25":200,"30":150,"60":1380,"150":2400,"200":1000,"295":3245,"300":11400},"2026-08-03":{"10":830,"25":150,"30":270,"60":1200,"150":1650,"200":800,"295":3245,"300":12600}},"periode":["2026-06-01","2026-08-03"],"v":1};
+
+const SIXD_KEY = 'snv_6d_v1';
+
+// Fusion socle + imports. Les données importées priment sur le socle pour une
+// même date : si 6D corrige un rapport, la version la plus récente gagne.
+function get6D() {
+  var imp = {};
+  try { imp = JSON.parse(localStorage.getItem(SIXD_KEY) || '{}') || {}; } catch(e) { imp = {}; }
+  var out = { cycle: {}, paliers: {} };
+  ['cycle','paliers'].forEach(function(sec){
+    Object.keys(SIXD_SEED[sec] || {}).forEach(function(d){ out[sec][d] = SIXD_SEED[sec][d]; });
+    Object.keys(imp[sec] || {}).forEach(function(d){ out[sec][d] = imp[sec][d]; });
+  });
+  return out;
+}
+
+function set6D(data) {
+  localStorage.setItem(SIXD_KEY, JSON.stringify(data));
+  if (typeof gistPush === 'function') gistPush();
+  if (typeof crmBackupWriteDebounced === 'function') crmBackupWriteDebounced();
+}
+
+// Agrégation sur une plage de dates.
+function agg6D(dates) {
+  var d6 = get6D();
+  var c = { nouveaux:0, a2a:0, a2g:0, g2a:0, g2s:0, s2a:0, s2d:0, jours:0 };
+  var pal = {};
+  dates.forEach(function(dt){
+    var v = d6.cycle[dt];
+    if (v) {
+      c.nouveaux+=v[0]; c.a2a+=v[1]; c.a2g+=v[2]; c.g2a+=v[3];
+      c.g2s+=v[4]; c.s2a+=v[5]; c.s2d+=v[6]; c.jours++;
+    }
+    var p = d6.paliers[dt];
+    if (p) Object.keys(p).forEach(function(k){ pal[k] = (pal[k]||0) + p[k]; });
+  });
+  var txTot=0, txRepli=0, tx10=0, revTot=0;
+  Object.keys(pal).forEach(function(k){
+    var prix = +k, tx = pal[k]/prix;
+    txTot += tx; revTot += pal[k];
+    if (prix < 200) txRepli += tx;
+    if (prix === 10) tx10 += tx;
+  });
+  return {
+    cycle: c, paliers: pal,
+    // Un abonné tombé en grâce revient-il ? C'est le seul levier de collecte
+    // qui se négocie avec MTN plutôt qu'avec le marché.
+    recupGrace:  c.a2g ? c.g2a/c.a2g*100 : null,
+    recupSusp:   c.g2s ? c.s2a/c.g2s*100 : null,
+    recupTotale: c.a2g ? (c.g2a+c.s2a)/c.a2g*100 : null,
+    desabJour:   c.jours ? c.s2d/c.jours : null,
+    transactions: txTot,
+    prixMoyen: txTot ? revTot/txTot : null,
+    partRepli: txTot ? txRepli/txTot*100 : null,
+    part10:    txTot ? tx10/txTot*100 : null,
+    revenuHT: revTot
+  };
+}
+
+function dates6D() { return Object.keys(get6D().cycle).sort(); }
+
+// Import des rapports 6D. Accepte les trois CSV quotidiens, dans n'importe
+// quel ordre — le contenu est reconnu d'après les colonnes, pas le nom.
+function import6D(fichiers, apres) {
+  var imp = {};
+  try { imp = JSON.parse(localStorage.getItem(SIXD_KEY) || '{}') || {}; } catch(e) { imp = {}; }
+  if (!imp.cycle)   imp.cycle = {};
+  if (!imp.paliers) imp.paliers = {};
+  var lus = 0, restants = fichiers.length;
+
+  Array.prototype.forEach.call(fichiers, function(f){
+    var reader = new FileReader();
+    reader.onload = function(ev){
+      var lignes = String(ev.target.result).split(/\r?\n/).filter(function(l){ return l.trim(); });
+      if (!lignes.length) { if (--restants === 0) fin(); return; }
+      var entete = lignes[0].split(',').map(function(x){ return x.trim(); });
+      var idx = {}; entete.forEach(function(h,i){ idx[h]=i; });
+
+      // Dédoublonnage sur (date, code offre) : un même code apparaît sous deux
+      // libellés dans les rapports 6D, sommer sans filtrer double le revenu.
+      var vus = {};
+      lignes.slice(1).forEach(function(l){
+        var c = l.split(',');
+        var dt = (c[idx['DATE']]||'').trim();
+        if (!/^\d{4}-\d{2}-\d{2}$/.test(dt)) return;
+
+        if (idx['ActivetoGrace'] !== undefined) {
+          var cle = dt + '|' + (c[idx['OFFER_CODE']]||'');
+          if (vus[cle]) return; vus[cle] = 1;
+          if (!imp.cycle[dt]) imp.cycle[dt] = [0,0,0,0,0,0,0];
+          var champs = ['NEW_SUBSCRIBER_COUNT','ActivetoActive','ActivetoGrace','GracetoActive',
+                        'GracetoSuspend','SuspendtoActive','SuspendtoDeactive'];
+          champs.forEach(function(nom,j){
+            imp.cycle[dt][j] += parseInt(c[idx[nom]]||0,10) || 0;
+          });
+          lus++;
+        } else if (idx['PRICE_POINT'] !== undefined) {
+          var p = Math.round(parseFloat(c[idx['PRICE_POINT']]||0));
+          if (!p) return;
+          if (!imp.paliers[dt]) imp.paliers[dt] = {};
+          imp.paliers[dt][p] = (imp.paliers[dt][p]||0) + (parseInt(c[idx['REVENUE']]||0,10)||0);
+          lus++;
+        }
+      });
+      if (--restants === 0) fin();
+    };
+    reader.readAsText(f);
+  });
+
+  function fin() {
+    set6D(imp);
+    if (typeof campToast === 'function')
+      campToast(lus + ' lignes 6D importées · ' + Object.keys(imp.cycle).length + ' dates en base', 'success');
+    if (apres) apres();
+  }
+}
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// ANALYSE — vue par cartes
+// ═══════════════════════════════════════════════════════════════════════════
+// Refonte d'août 2026. L'ancienne organisation en cinq sous-onglets faisait
+// lire la même donnée sous plusieurs angles sans jamais donner de vue
+// d'ensemble. Ici : une barre de filtres qui pilote tout l'écran, quatre
+// blocs de cartes, un tableau par canal. Deux scrolls.
+//
+// Partage des rôles avec Insights : Analyse répond à « combien », Insights
+// répond à « et alors ». Tout ce qui est interprétation, constat ou alerte
+// part dans Insights.
+
+var _anF = { periode:'wow', op:'MTN', type:'organic', debut:null, fin:null };
+
+const AN_PERIODES = {
+  dod: { label:'DoD', jours:1,  libelle:'jour' },
+  wow: { label:'WoW', jours:7,  libelle:'semaine' },
+  mom: { label:'MoM', jours:30, libelle:'mois' },
+};
+
+function anSetFiltre(k, v) { _anF[k] = v; renderAnalyseCartes(); }
+
+// Deux plages contiguës de même longueur : la période courante et celle qui
+// la précède, pour que chaque carte porte son évolution.
+function anPlages() {
+  var toutes = (typeof getH === 'function') ? Object.keys(getH()).sort() : [];
+  if (_anF.periode === 'plage' && _anF.debut && _anF.fin) {
+    var cur = toutes.filter(function(d){ return d >= _anF.debut && d <= _anF.fin; });
+    var n = cur.length;
+    var avant = toutes.filter(function(d){ return d < _anF.debut; }).slice(-n);
+    return { cur: cur, prev: avant };
+  }
+  var n = AN_PERIODES[_anF.periode].jours;
+  return { cur: toutes.slice(-n), prev: toutes.slice(-(n*2), -n) };
+}
+
+// Agrégat CRM filtré par opérateur et type de chaîne.
+function anAgg(dates) {
+  var h = (typeof getH === 'function') ? getH() : {};
+  var t = { rev:0, bill:0, act:0, nw:0, un:0, jours:0, actDeb:0, actFin:0 };
+  var parCanal = {};
+  dates.forEach(function(d){
+    var arr = (h[d] && h[d].organic) || [];
+    var jourVu = false;
+    arr.forEach(function(c){
+      var op = (c.gateway||'').split('-')[0] || 'MTN';
+      if (_anF.op !== 'tous' && op !== _anF.op) return;
+      // Le CRM ne porte que l'organique dans h[].organic ; le bundle vit
+      // dans h[].kpi. Le filtre type est donc informatif pour l'instant.
+      var nom = (typeof bicNormCanal === 'function') ? bicNormCanal(c.channel_name) : c.channel_name;
+      var v = { rev:+c.revenue_xaf||0, bill:+c.billed_users||0, act:+c.active_users||0,
+                nw:+c.new_subscribers||0, un:+c.unsubscribers||0 };
+      t.rev+=v.rev; t.bill+=v.bill; t.act+=v.act; t.nw+=v.nw; t.un+=v.un;
+      jourVu = true;
+      if (!parCanal[nom]) parCanal[nom] = { rev:0, bill:0, act:0, nw:0, un:0, jours:0, op:op };
+      var p = parCanal[nom];
+      p.rev+=v.rev; p.bill+=v.bill; p.act+=v.act; p.nw+=v.nw; p.un+=v.un; p.jours++;
+    });
+    if (jourVu) t.jours++;
+  });
+  // Base d'ouverture et de clôture, pour le churn
+  var prem = dates[0], dern = dates[dates.length-1];
+  [['actDeb',prem],['actFin',dern]].forEach(function(pair){
+    var arr = (h[pair[1]] && h[pair[1]].organic) || [];
+    arr.forEach(function(c){
+      var op = (c.gateway||'').split('-')[0] || 'MTN';
+      if (_anF.op !== 'tous' && op !== _anF.op) return;
+      t[pair[0]] += +c.active_users||0;
+    });
+  });
+  t.actifsMoy   = t.jours ? t.act/t.jours : 0;
+  t.revParJour  = t.jours ? t.rev/t.jours : 0;
+  t.revParJourAbo = t.act ? t.rev/t.act : null;
+  t.billingRate = t.act ? t.bill/t.act*100 : null;
+  t.prixMoyen   = t.bill ? t.rev/t.bill : null;
+  t.net         = t.nw - t.un;
+  t.rotation    = t.actifsMoy ? t.un/t.actifsMoy*100 : null;
+  t.dureeVie    = (t.un && t.jours) ? t.act/t.un : null;
+  t.parCanal    = parCanal;
+  return t;
+}
+
+// ── Carte ──────────────────────────────────────────────────────────────────
+// Chaque carte porte son indicateur, son évolution et une ligne qui dit ce
+// que le chiffre signifie. Sans cette ligne, un « 1,681 % » ne dit rien.
+function anCarte(label, valeur, cur, prev, sens, desc, opts) {
+  opts = opts || {};
+  var ev = (prev && prev !== 0) ? (cur - prev) / Math.abs(prev) * 100 : null;
+  var dir = (ev === null || Math.abs(ev) < 0.5) ? 'flat' : (ev > 0 ? 'up' : 'down');
+  // sens = 'haut' si monter est bon, 'bas' si monter est mauvais
+  var bon = (dir === 'flat') ? null : ((sens === 'bas') ? (dir === 'down') : (dir === 'up'));
+  var col = bon === null ? '#94a3b8' : (bon ? '#16a34a' : '#ef4444');
+  var fl  = dir === 'flat' ? '=' : (dir === 'up' ? '▲' : '▼');
+  var evTxt = ev === null ? 'référence absente'
+            : (opts.pts ? (ev>0?'+':'') + (cur-prev).toFixed(1) + ' pts'
+                        : (ev>0?'+':'') + ev.toFixed(ev<10?1:0) + ' %');
+
+  return '<div style="background:#fff;border:1px solid #e8eaf0;border-radius:9px;padding:11px 13px">'
+    + '<div style="font-size:10px;color:#64748b;margin-bottom:5px;line-height:1.3">' + label + '</div>'
+    + '<div style="display:flex;align-items:baseline;gap:6px;flex-wrap:wrap">'
+    +   '<span style="font-size:18px;font-weight:700;color:#0f172a">' + valeur + '</span>'
+    +   '<span style="font-size:10px;color:' + col + ';font-weight:600">' + fl + ' ' + evTxt + '</span>'
+    + '</div>'
+    + '<div style="font-size:10px;color:#94a3b8;margin-top:5px;line-height:1.45">' + desc + '</div>'
+    + '</div>';
+}
+
+function anBloc(titre, cartes, sousTitre) {
+  return '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:0 0 7px 2px">'
+       + titre + (sousTitre ? ' <span style="text-transform:none;letter-spacing:0;color:#4f5bd5">· ' + sousTitre + '</span>' : '')
+       + '</div>'
+       + '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(158px,1fr));gap:9px;margin-bottom:16px">'
+       + cartes.join('') + '</div>';
+}
+
+const anF  = function(v,d){ return v==null ? '—' : Number(v).toLocaleString('fr-FR',{minimumFractionDigits:d||0,maximumFractionDigits:d||0}); };
+const anXAF= function(v){ return v==null ? '—' : anF(v) + ' F'; };
+const anPC = function(v,d){ return v==null ? '—' : Number(v).toFixed(d==null?1:d) + ' %'; };
+
+// ── Rendu principal ────────────────────────────────────────────────────────
+function renderAnalyseCartes() {
+  var el = document.getElementById('analyseCartes');
+  if (!el) return;
+  var pl = anPlages();
+  if (!pl.cur.length) { el.innerHTML = '<div class="alert alert-info">Aucune donnée sur la période.</div>'; return; }
+
+  var C = anAgg(pl.cur), P = anAgg(pl.prev);
+  var S = agg6D(pl.cur),  SP = agg6D(pl.prev);
+  var lib = AN_PERIODES[_anF.periode] ? AN_PERIODES[_anF.periode].libelle : 'période';
+
+  var h = '';
+
+  // ── Barre de filtres ──
+  h += '<div style="display:flex;gap:7px;flex-wrap:wrap;align-items:center;padding:9px 12px;background:#fff;'
+     + 'border:1px solid #e8eaf0;border-radius:8px;margin-bottom:14px">';
+  h += '<span style="font-size:10px;color:#94a3b8">Période</span>';
+  ['dod','wow','mom'].forEach(function(k){ h += anPuce('periode', k, AN_PERIODES[k].label); });
+  h += anPuce('periode','plage','Plage');
+  if (_anF.periode === 'plage') {
+    h += '<input type="date" value="' + (_anF.debut||'') + '" onchange="anSetFiltre(\'debut\',this.value)" '
+       + 'style="padding:3px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:10px">';
+    h += '<input type="date" value="' + (_anF.fin||'') + '" onchange="anSetFiltre(\'fin\',this.value)" '
+       + 'style="padding:3px 6px;border:1px solid #e2e8f0;border-radius:5px;font-size:10px">';
+  }
+  h += '<span style="width:1px;height:16px;background:#e2e8f0"></span>';
+  [['tous','Tous'],['MTN','MTN'],['OCI','OCI']].forEach(function(o){ h += anPuce('op', o[0], o[1]); });
+  h += '<span style="width:1px;height:16px;background:#e2e8f0"></span>';
+  [['organic','Organique'],['bundle','Bundle'],['tous','Tous types']].forEach(function(o){ h += anPuce('type', o[0], o[1]); });
+  h += '<span style="margin-left:auto;font-size:10px;color:#94a3b8">'
+     + pl.cur[0] + ' → ' + pl.cur[pl.cur.length-1] + ' · ' + pl.cur.length + ' j</span>';
+  h += '</div>';
+
+  // ── Bloc 1 — Revenu ──
+  h += anBloc('Revenu', [
+    anCarte('Revenu TTC', anXAF(C.rev), C.rev, P.rev, 'haut',
+      'HT : ' + anXAF(C.rev/1.18) + '. Le CRM stocke du TTC.'),
+    anCarte('Revenu / jour-abonné', anF(C.revParJourAbo,3) + ' F', C.revParJourAbo, P.revParJourAbo, 'haut',
+      'Mesure d\'efficacité. Rend comparables des canaux de tailles différentes.'),
+    anCarte('Prix moyen encaissé', anXAF(C.prixMoyen), C.prixMoyen, P.prixMoyen, 'haut',
+      'Très en dessous du tarif affiché : les faibles soldes tombent sur les paliers de repli.'),
+    anCarte('Revenu par jour', anXAF(C.revParJour), C.revParJour, P.revParJour, 'haut',
+      'Moyenne quotidienne sur la ' + lib + '.'),
+  ]);
+
+  // ── Bloc 2 — Base et acquisition ──
+  h += anBloc('Base et acquisition', [
+    anCarte('Abonnés actifs', anF(C.actifsMoy), C.actifsMoy, P.actifsMoy, 'haut',
+      'Moyenne journalière. Base d\'ouverture ' + anF(C.actDeb) + ', clôture ' + anF(C.actFin) + '.'),
+    anCarte('Recrutements', anF(C.nw), C.nw, P.nw, 'haut',
+      'Nouveaux abonnés sur la ' + lib + '.'),
+    anCarte('Sorties', anF(C.un), C.un, P.un, 'bas',
+      'Deux tiers des recrues non facturées sortent à J+5.'),
+    anCarte('Croissance nette', (C.net>0?'+':'') + anF(C.net), C.net, P.net, 'haut',
+      'Recrutements moins sorties.'),
+  ]);
+
+  // ── Bloc 3 — Collecte (6D) ──
+  var dispo6D = S.cycle.jours > 0;
+  h += anBloc('Collecte', [
+    anCarte('Billing rate', anPC(C.billingRate,3) + ' /j', C.billingRate, P.billingRate, 'haut',
+      'Part des abonnés actifs prélevés chaque jour.'),
+    anCarte('Facturations', anF(C.bill), C.bill, P.bill, 'haut',
+      'Prélèvements réussis sur la ' + lib + '.'),
+    dispo6D
+      ? anCarte('Récupération grâce + susp.', anPC(S.recupTotale,1), S.recupTotale, SP.recupTotale, 'haut',
+          'Un abonné tombé en grâce revient-il ? Était 19,1 % avant Balance+.', {pts:true})
+      : anCarteVide('Récupération grâce + susp.', 'Import 6D requis'),
+    dispo6D
+      ? anCarte('Part du palier 10 F', anPC(S.part10,1), S.part10, SP.part10, 'bas',
+          'Des transactions. Premier palier du service depuis juillet.', {pts:true})
+      : anCarteVide('Part du palier 10 F', 'Import 6D requis'),
+  ], dispo6D ? 'source 6D · ' + S.cycle.jours + ' jours' : 'source 6D absente');
+
+  // ── Bloc 4 — Cycle de vie ──
+  var lag = anProfilSortie(pl.cur);
+  h += anBloc('Cycle de vie', [
+    anCarte('Durée de vie moyenne', C.dureeVie ? anF(C.dureeVie,1) + ' j' : '—', C.dureeVie, P.dureeVie, 'haut',
+      'Jours-abonnés divisés par les sorties.'),
+    anCarte('Rotation du parc', anPC(C.rotation,0), C.rotation, P.rotation, 'bas',
+      'Sorties rapportées à la base moyenne. Au-delà de 100 %, le parc se renouvelle plusieurs fois.', {pts:true}),
+    lag ? anCarteStatique('Délai de sortie', 'J+' + lag.pic,
+            'Capteur de configuration. J+5 = 1 jour de grâce + 3 de suspension. R²=' + lag.r2.toFixed(2) + '.',
+            lag.pic === 5 ? '#16a34a' : '#f59e0b')
+        : anCarteVide('Délai de sortie', 'Période trop courte'),
+    dispo6D
+      ? anCarte('Désabonnements auto. / jour', anF(S.desabJour), S.desabJour, SP.desabJour, 'bas',
+          'Sorties depuis la suspension, mesurées par 6D.')
+      : anCarteVide('Désabonnements auto. / jour', 'Import 6D requis'),
+  ]);
+
+  // ── Tableau par canal ──
+  h += anTableauCanaux(C, P);
+
+  el.innerHTML = h;
+}
+
+function anPuce(champ, val, label) {
+  var on = (_anF[champ] === val);
+  return '<button onclick="anSetFiltre(\'' + champ + '\',\'' + val + '\')" '
+       + 'style="padding:3px 10px;border-radius:5px;font-size:10px;font-weight:600;cursor:pointer;border:1px solid '
+       + (on ? '#4f5bd5' : '#e2e8f0') + ';background:' + (on ? '#4f5bd5' : '#fff') + ';color:'
+       + (on ? '#fff' : '#64748b') + '">' + label + '</button>';
+}
+
+function anCarteVide(label, msg) {
+  return '<div style="background:#fafbfc;border:1px dashed #e2e8f0;border-radius:9px;padding:11px 13px">'
+    + '<div style="font-size:10px;color:#94a3b8;margin-bottom:5px">' + label + '</div>'
+    + '<div style="font-size:14px;color:#cbd5e1;font-weight:600">—</div>'
+    + '<div style="font-size:10px;color:#cbd5e1;margin-top:5px">' + msg + '</div></div>';
+}
+
+function anCarteStatique(label, valeur, desc, couleur) {
+  return '<div style="background:#fff;border:1px solid #e8eaf0;border-radius:9px;padding:11px 13px">'
+    + '<div style="font-size:10px;color:#64748b;margin-bottom:5px">' + label + '</div>'
+    + '<div style="font-size:18px;font-weight:700;color:' + (couleur||'#0f172a') + '">' + valeur + '</div>'
+    + '<div style="font-size:10px;color:#94a3b8;margin-top:5px;line-height:1.45">' + desc + '</div></div>';
+}
+
+// Profil de sortie sur la période, via la régression à retards du socle BIC.
+function anProfilSortie(dates) {
+  if (typeof bicSeriesParOp !== 'function' || typeof bicLagProfile !== 'function') return null;
+  var S = bicSeriesParOp();
+  var meilleur = null, maxRec = 0;
+  Object.keys(S).forEach(function(k){
+    if (_anF.op !== 'tous' && k.indexOf(_anF.op + ' ·') !== 0) return;
+    var rec = 0;
+    dates.forEach(function(d){ if (S[k][d]) rec += S[k][d].nw; });
+    if (rec > maxRec) { maxRec = rec; meilleur = k; }
+  });
+  if (!meilleur || maxRec < 300) return null;
+  // On élargit la fenêtre : la régression a besoin de plus de points que la
+  // période affichée pour être stable.
+  var ds = Object.keys(S[meilleur]).sort().slice(-60);
+  return bicLagProfile(S[meilleur], ds, 9);
+}
+
+// ── Tableau par canal ──────────────────────────────────────────────────────
+// Le détail par canal ne mérite pas des cartes : douze canaux feraient
+// quarante-huit cartes. Un tableau trié par contribution suffit, et permet
+// de repérer d'un coup les bases dormantes.
+function anTableauCanaux(C, P) {
+  var lignes = Object.keys(C.parCanal).map(function(nom){
+    var c = C.parCanal[nom], p = P.parCanal[nom] || {rev:0};
+    return {
+      nom: nom, op: c.op, rev: c.rev, bill: c.bill, act: c.act, nw: c.nw, un: c.un,
+      revPrec: p.rev,
+      rja: c.act ? c.rev/c.act : null,
+      tx:  c.act ? c.bill/c.act*100 : null,
+      prix: c.bill ? c.rev/c.bill : null,
+      moy: c.jours ? c.act/c.jours : 0,
+      part: C.rev ? c.rev/C.rev*100 : 0
+    };
+  }).filter(function(x){ return x.act > 0; })
+    .sort(function(a,b){ return b.rev - a.rev; });
+
+  if (!lignes.length) return '';
+
+  var h = '<div style="font-size:10px;color:#94a3b8;text-transform:uppercase;letter-spacing:.05em;margin:2px 0 7px 2px">'
+        + 'Détail par canal</div>';
+  h += '<div style="background:#fff;border:1px solid #e8eaf0;border-radius:9px;overflow:hidden">';
+  h += '<div style="overflow-x:auto"><table style="width:100%;border-collapse:collapse;font-size:11px">';
+  h += '<thead><tr style="background:#f8fafc">'
+     + ['Canal','Revenu','Part','XAF/j-abo','Billing rate','Prix moyen','Actifs moy.','Recrues','Sorties','Net','Évolution']
+       .map(function(t,i){ return '<th style="padding:7px 9px;text-align:' + (i?'right':'left')
+         + ';font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.03em;font-weight:600;white-space:nowrap">'
+         + t + '</th>'; }).join('')
+     + '</tr></thead><tbody>';
+
+  lignes.forEach(function(l){
+    var net = l.nw - l.un;
+    var ev  = l.revPrec ? (l.rev - l.revPrec)/l.revPrec*100 : null;
+    // Vert au-delà de 0,5 XAF par jour-abonné, rouge en dessous de 0,1 :
+    // bornes tirées de l'écart observé entre Flash Foot et Mc One.
+    var cE = l.rja == null ? '#64748b' : (l.rja >= 0.5 ? '#16a34a' : (l.rja >= 0.1 ? '#f59e0b' : '#ef4444'));
+    h += '<tr style="border-top:1px solid #f1f5f9">'
+      + '<td style="padding:6px 9px;font-weight:600;color:#0f172a;white-space:nowrap">'
+      +   '<span style="color:#94a3b8;font-size:9px">' + l.op + '</span> ' + l.nom + '</td>'
+      + '<td style="padding:6px 9px;text-align:right;white-space:nowrap">' + anXAF(l.rev) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right;color:#64748b">' + l.part.toFixed(0) + ' %</td>'
+      + '<td style="padding:6px 9px;text-align:right;font-weight:700;color:' + cE + '">' + anF(l.rja,3) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right">' + anPC(l.tx,3) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right">' + anXAF(l.prix) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right">' + anF(l.moy) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right">' + anF(l.nw) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right">' + anF(l.un) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right;font-weight:700;color:' + (net>0?'#16a34a':'#ef4444') + '">'
+      +   (net>0?'+':'') + anF(net) + '</td>'
+      + '<td style="padding:6px 9px;text-align:right;color:' + (ev==null?'#94a3b8':(ev>0?'#16a34a':'#ef4444')) + '">'
+      +   (ev==null ? '—' : (ev>0?'+':'') + ev.toFixed(0) + ' %') + '</td>'
+      + '</tr>';
+  });
+  h += '</tbody></table></div></div>';
+  h += '<div style="font-size:9px;color:#94a3b8;margin-top:7px;line-height:1.5">'
+     + 'XAF par jour-abonné — vert au-delà de 0,5, orange de 0,1 à 0,5, rouge en dessous : une base dormante '
+     + 'pèse dans les totaux sans rien rapporter.</div>';
+  return h;
+}
+
+// ═══════════════════════════════════════════════════════════════════════════
+// CONSOLE IA — panneau flottant
+// ═══════════════════════════════════════════════════════════════════════════
+// Sortie de l'onglet Analyse : c'est un outil, pas une vue. Accessible
+// partout dans le CRM par un bouton fixe en bas à droite.
+
+var _consoleOuverte = false;
+
+function consoleBasculer() {
+  _consoleOuverte = !_consoleOuverte;
+  var p = document.getElementById('bicConsolePanneau');
+  var b = document.getElementById('bicConsoleBouton');
+  if (!p) return;
+  p.style.display = _consoleOuverte ? 'flex' : 'none';
+  if (b) b.innerHTML = _consoleOuverte ? '✕' : '💬';
+  if (_consoleOuverte) {
+    var corps = document.getElementById('bicConsoleCorps');
+    if (corps && !corps.dataset.charge) {
+      corps.innerHTML = bicRenderConsole();
+      corps.dataset.charge = '1';
+    }
+  }
+}
+
+function consoleMonter() {
+  if (document.getElementById('bicConsoleBouton')) return;
+  var b = document.createElement('button');
+  b.id = 'bicConsoleBouton';
+  b.onclick = consoleBasculer;
+  b.title = 'Console IA — interroger les données';
+  b.style.cssText = 'position:fixed;right:20px;bottom:20px;width:46px;height:46px;border-radius:23px;'
+    + 'background:#4f5bd5;color:#fff;border:none;font-size:19px;cursor:pointer;z-index:9998;'
+    + 'box-shadow:0 3px 12px rgba(79,91,213,.35)';
+  b.innerHTML = '💬';
+  document.body.appendChild(b);
+
+  var p = document.createElement('div');
+  p.id = 'bicConsolePanneau';
+  p.style.cssText = 'position:fixed;right:20px;bottom:76px;width:min(440px,calc(100vw - 40px));'
+    + 'max-height:min(620px,calc(100vh - 120px));background:#fff;border:1px solid #e2e8f0;border-radius:12px;'
+    + 'box-shadow:0 10px 40px rgba(15,23,42,.16);z-index:9997;display:none;flex-direction:column;overflow:hidden';
+  p.innerHTML = '<div style="padding:11px 15px;border-bottom:1px solid #f1f5f9;display:flex;'
+    + 'justify-content:space-between;align-items:center">'
+    + '<div><div style="font-size:13px;font-weight:700;color:#0f172a">Console IA</div>'
+    + '<div style="font-size:10px;color:#94a3b8">Interroge les données du CRM</div></div>'
+    + '<button onclick="consoleBasculer()" style="background:none;border:none;color:#94a3b8;font-size:17px;'
+    + 'cursor:pointer;line-height:1">×</button></div>'
+    + '<div id="bicConsoleCorps" style="padding:14px;overflow-y:auto;flex:1"></div>';
+  document.body.appendChild(p);
+}
+
 
 </script>
 </body>
