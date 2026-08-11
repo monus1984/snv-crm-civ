@@ -13485,7 +13485,11 @@ function tmExportStatsOCI() {
 
   const [y, m]    = _statsMonth.split('-').map(Number);
   const label     = ociMonthLabel(_statsMonth);
-  const monthDate = new Date(y, m-1, 1);
+  // Midi UTC et non minuit local : SheetJS convertit la date en UTC a
+  // l'ecriture, et un 1er du mois a minuit recule au dernier jour du mois
+  // precedent des que le poste n'est pas sur GMT (le libelle affichait
+  // "juin-26" sur le rapport de juillet). Midi laisse 12 h de marge.
+  const monthDate = new Date(Date.UTC(y, m-1, 1, 12, 0, 0));
   const months    = ['Janvier','Février','Mars','Avril','Mai','Juin','Juillet','Août','Septembre','Octobre','Novembre','Décembre'];
   const monthUp   = months[m-1].toUpperCase();
 
@@ -13680,15 +13684,17 @@ function finStatutLabel(operateur, statutId) {
 
 const FIN_DEFAULT_STATE = {
   factures: [
-    { id:'fin_f001', operateur:'OCI', mois:'2026-03', type:'both', montant_snv:12312998, montant_op:null, statut:'fne_generee', fne_number:null, date_facture:'2026-05-07', date_paye:null, date_echeance:null, notes:'Facture OCI Mars 2026' },
-    { id:'fin_f002', operateur:'OCI', mois:'2026-04', type:'both', montant_snv:11531607, montant_op:null, statut:'fne_generee', fne_number:null, date_facture:'2026-05-07', date_paye:null, date_echeance:null, notes:'Facture OCI Avril 2026' },
+    { id:'fin_f001', operateur:'OCI', mois:'2026-03', type:'both', montant_snv:392914, montant_op:10434745, montant_fne:12312999, snv_base_ok:false, snv_base_note:'organique seul, aucun releve bundle avant le 17/05/2026', statut:'fne_generee', fne_number:'1516517E26000000010', date_facture:'2026-05-06', date_paye:null, date_echeance:null, notes:'OCI Mars 2026 · CA OCI : Org 33 375 + Bundle 24 836 100 | Part SNV HT (OCI) 10 434 745 | FNE TTC 12 312 999 | Stats CRM non disponibles (générateur actif depuis juin 2026) | Courrier relance 03/07/2026' },
+    { id:'fin_f002', operateur:'OCI', mois:'2026-04', type:'both', montant_snv:358752, montant_op:9772548, montant_fne:11531607, snv_base_ok:false, snv_base_note:'organique seul, aucun releve bundle avant le 17/05/2026', statut:'fne_generee', fne_number:'1516517E26000000011', date_facture:'2026-05-06', date_paye:null, date_echeance:null, notes:'OCI Avril 2026 · CA OCI : Org 23 840 + Bundle 23 267 300 | Part SNV HT (OCI) 9 772 548 | FNE TTC 11 531 607 | Stats CRM non disponibles (générateur actif depuis juin 2026) | Courrier relance 03/07/2026' },
     { id:'fin_f003', operateur:'MTN', mois:'2026-01', type:'bundle', montant_snv:2352394, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'Jan 26 bundle - escalade Groupe recommandee' },
-    { id:'fin_f004', operateur:'MTN', mois:'2026-02', type:'organic', montant_snv:1954114, montant_op:null, statut:'fne_envoyee', fne_number:null, date_facture:'2026-07-05', date_paye:null, date_echeance:'2026-06-15', notes:'Echeance 15/06 depassee' },
+    { id:'fin_f004', operateur:'MTN', mois:'2026-02', type:'organic', montant_snv:1954114, montant_op:null, statut:'fne_envoyee', fne_number:'1516517E26000000012', date_facture:'2026-05-06', date_paye:null, date_echeance:'2026-06-15', notes:'Echeance 15/06 depassee' },
     { id:'fin_f005', operateur:'MTN', mois:'2026-02', type:'bundle', montant_snv:1792701, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'' },
     { id:'fin_f006', operateur:'MTN', mois:'2026-03', type:'organic', montant_snv:2005897, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'' },
     { id:'fin_f007', operateur:'MTN', mois:'2026-03', type:'bundle', montant_snv:1118680, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'' },
     { id:'fin_f008', operateur:'MTN', mois:'2026-04', type:'organic', montant_snv:781462, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'' },
     { id:'fin_f009', operateur:'MTN', mois:'2026-04', type:'bundle', montant_snv:773051, montant_op:null, statut:'en_attente_etat', fne_number:null, date_facture:null, date_paye:null, date_echeance:null, notes:'' },
+    { id:'fin_f010', operateur:'OCI', mois:'2026-05', type:'both', montant_snv:5031634, montant_op:9901366, montant_fne:11683612, snv_base_ok:false, snv_base_note:'bundle releve du 17 au 31 mai seulement (15 jours sur 31)', statut:'fne_generee', fne_number:'1516517E26000000014', date_facture:'2026-07-10', date_paye:null, date_echeance:null, notes:'OCI Mai 2026 · CA OCI : Org 31 155 + Bundle 23 567 100 | Part SNV HT (OCI) 9 901 366 | FNE TTC 11 683 612 | Stats CRM non disponibles (générateur actif depuis juin 2026)' },
+    { id:'fin_f011', operateur:'OCI', mois:'2026-06', type:'both', montant_snv:8963264, montant_op:9106007, montant_fne:10745088, snv_base_ok:true, statut:'fne_generee', fne_number:'1516517E26000000015', date_facture:'2026-07-10', date_paye:null, date_echeance:null, notes:'OCI Juin 2026 · CA OCI : Org 35 445 + Bundle 21 327 000 (stats CRM) | Part SNV HT (OCI) 9 106 007 | FNE TTC 10 745 088' },
   ],
   charges: [
     { id:'ch001', beneficiaire:'Moise', libelle:'Internet', montant:30000, devise:'XAF', date_fin:'2026-07-28', statut:'ok', recurrence:'mensuelle', categorie:'operationnelle', notes:'' },
@@ -13753,11 +13759,131 @@ function finMigrate(s) {
       delete d.type; delete d.montant; delete d.mois_reference;
     }
   });
+  // ── Patch v2 août 2026 : numéros FNE + OCI mai/juin ──────────────
+  // Ne s'applique qu'une fois (flag _fin_patch_v2). Permet de corriger
+  // les données déjà en localStorage sans perdre les saisies manuelles.
+  if (!s._fin_patch_v2) {
+    var _fpatches = {
+      'fin_f001': { fne_number:'1516517E26000000010', date_facture:'2026-05-06' },
+      'fin_f002': { fne_number:'1516517E26000000011', date_facture:'2026-05-06' },
+      'fin_f004': { fne_number:'1516517E26000000012', date_facture:'2026-05-06', montant_snv:1954114 },
+    };
+    (s.factures || []).forEach(function(f) {
+      if (_fpatches[f.id]) {
+        var p = _fpatches[f.id];
+        Object.keys(p).forEach(function(k) { if (!f[k] || f[k] === null) f[k] = p[k]; });
+      }
+    });
+    var _eIds = (s.factures || []).map(function(f) { return f.id; });
+    [
+      { id:'fin_f010', operateur:'OCI', mois:'2026-05', type:'both', montant_snv:11683612, montant_op:23598255, statut:'fne_generee', fne_number:'1516517E26000000014', date_facture:'2026-07-10', date_paye:null, date_echeance:null, notes:'OCI Mai 2026 · CA OCI Org 31 155 + Bundle 23 567 100 TTC · Part SNV 60% HT = 9 901 366' },
+      { id:'fin_f011', operateur:'OCI', mois:'2026-06', type:'both', montant_snv:10745088, montant_op:21702650, statut:'fne_generee', fne_number:'1516517E26000000015', date_facture:'2026-07-10', date_paye:null, date_echeance:null, notes:'OCI Juin 2026 · CA OCI Org 35 550 + Bundle 21 667 100 TTC · Part SNV 60% HT = 9 106 007' },
+    ].forEach(function(f) { if (_eIds.indexOf(f.id) === -1) s.factures.push(f); });
+    s._fin_patch_v2 = true;
+  }
+
+  // ── Patch v5 : modele a trois montants (aout 2026) ──────────────────────
+  //   montant_snv = part SNV HT mesuree par le CRM
+  //   montant_op  = part SNV HT validee sur la fiche de reconciliation OCI
+  //   montant_fne = montant TTC lu sur le PDF de la FNE
+  //   snv_base_ok = false quand la mesure CRM ne couvre pas le meme perimetre
+  //                 ou la meme periode que la fiche OCI (pas d'ecart calcule)
+  if (!s._fin_patch_v5) {
+    var _v5 = {
+      'fin_f001': { montant_snv:392914, montant_op:10434745, montant_fne:12312999,
+                    snv_base_ok:false,
+                    snv_base_note:'organique seul, aucun releve bundle avant le 17/05/2026',
+                    fne_number:'1516517E26000000010', date_facture:'2026-05-06',
+                    statut:'fne_generee',
+                    notes:'OCI Mars 2026 | Fiche OCI : organique 33 375 + bundle 24 836 100 | Part SNV HT (OCI) 10 434 745 | FNE 12 312 999 | Mesure CRM partielle, non comparable | Courrier relance 03/07/2026' },
+      'fin_f002': { montant_snv:358752, montant_op:9772548, montant_fne:11531607,
+                    snv_base_ok:false,
+                    snv_base_note:'organique seul, aucun releve bundle avant le 17/05/2026',
+                    fne_number:'1516517E26000000011', date_facture:'2026-05-06',
+                    statut:'fne_generee',
+                    notes:'OCI Avril 2026 | Fiche OCI : organique 23 840 + bundle 23 267 300 | Part SNV HT (OCI) 9 772 548 | FNE 11 531 607 | Mesure CRM partielle, non comparable | Courrier relance 03/07/2026' },
+      'fin_f004': { montant_snv:1954114,
+                    fne_number:'1516517E26000000012', date_facture:'2026-05-06',
+                    date_echeance:'2026-06-15', statut:'fne_envoyee',
+                    notes:'Echeance 15/06 depassee' },
+      'fin_f010': { montant_snv:5031634, montant_op:9901366, montant_fne:11683612,
+                    snv_base_ok:false,
+                    snv_base_note:'bundle releve du 17 au 31 mai seulement (15 jours sur 31)',
+                    fne_number:'1516517E26000000014', date_facture:'2026-07-10',
+                    statut:'fne_generee',
+                    notes:'OCI Mai 2026 | Fiche OCI : organique 31 155 + bundle 23 567 100 | Part SNV HT (OCI) 9 901 366 | FNE 11 683 612 | Mesure CRM sur 15 jours, non comparable' },
+      'fin_f011': { montant_snv:8963264, montant_op:9106007, montant_fne:10745088,
+                    snv_base_ok:true, snv_base_note:null,
+                    fne_number:'1516517E26000000015', date_facture:'2026-07-10',
+                    statut:'fne_generee',
+                    notes:'OCI Juin 2026 | Mesure CRM 30 jours : organique 35 445 + bundle 21 327 000 TTC -> part SNV HT 8 963 264 | Part SNV HT (OCI) 9 106 007 | FNE 10 745 088 | Ecart 142 743 XAF (1,6 %)' }
+    };
+    var _force = { montant_snv:1, montant_op:1, montant_fne:1,
+                   snv_base_ok:1, snv_base_note:1, fne_number:1, statut:1, notes:1 };
+    var _byId = {};
+    (s.factures || []).forEach(function(f) { _byId[f.id] = f; });
+    Object.keys(_v5).forEach(function(id) {
+      var p = _v5[id], f = _byId[id];
+      if (!f) {
+        f = { id:id, operateur:'OCI', type:'both',
+              mois:(id === 'fin_f010' ? '2026-05' : '2026-06'),
+              montant_snv:null, montant_op:null, montant_fne:null,
+              statut:'fne_generee', fne_number:null, date_facture:null,
+              date_paye:null, date_echeance:null, notes:'', etapes:{} };
+        s.factures.push(f); _byId[id] = f;
+      }
+      Object.keys(p).forEach(function(k) {
+        if (_force[k]) f[k] = p[k];
+        else if (p[k] !== null && !f[k]) f[k] = p[k];
+      });
+    });
+    // Recalcul de l'ecart stocke, uniquement quand la base est comparable.
+    (s.factures || []).forEach(function(f) {
+      if (f.montant_snv != null && f.montant_op != null && f.snv_base_ok !== false) {
+        var pc = (f.montant_op - f.montant_snv) / f.montant_op * 100;
+        f.recon_delta_pct = Math.round(pc*10)/10;
+        f.recon_ok = Math.abs(pc) <= 3;
+      } else {
+        f.recon_delta_pct = null; f.recon_ok = null;
+      }
+    });
+    // Correctif des montants inscrits par l'ancien bouton "CRM", qui recopiait
+    // le chiffre d'affaires TTC au lieu de la part SNV HT. On ne touche qu'aux
+    // factures encore vierges de toute saisie (aucun numero de FNE, aucune
+    // date de facture), pour ne pas ecraser un montant confirme a la main.
+    (s.factures || []).forEach(function(f) {
+      if (f.montant_snv == null || f.fne_number || f.date_facture) return;
+      if (f.montant_op != null || f.montant_fne != null) return;
+      // Uniquement les factures generees par le CRM et remplies par le bouton
+      // "CRM". Les montants issus des etats MTN ou des fiches OCI sont deja
+      // des parts SNV : les retraiter les diviserait une seconde fois.
+      if (!/Cr..e automatiquement/.test(f.notes || '')) return;
+      var corrige = (f.operateur === 'OCI')
+        ? Math.round(f.montant_snv / 1.43 * 0.60)
+        : Math.round(f.montant_snv / 1.18 * 0.82 * 0.60);
+      if (corrige === f.montant_snv) return;
+      var av = f.montant_snv;
+      f.montant_snv = corrige;
+      f.notes = (f.notes ? f.notes + ' | ' : '')
+              + 'Montant corrige le 06/08/2026 : ' + av.toLocaleString('fr-FR')
+              + ' XAF etait le CA TTC, remplace par la part SNV HT.';
+    });
+    s._fin_patch_v5 = true;
+  }
   return s;
 }
 
 function getFinState() {
-  try { var raw = localStorage.getItem(FIN_KEY); if (raw) return finMigrate(JSON.parse(raw)); } catch(e) {}
+  try {
+    var raw = localStorage.getItem(FIN_KEY);
+    if (raw) {
+      var st = finMigrate(JSON.parse(raw));
+      // La migration doit etre persistee, sinon les patches sont rejoues
+      // a chaque chargement et les correctifs ne survivent pas a un export.
+      try { localStorage.setItem(FIN_KEY, JSON.stringify(st)); } catch(e2) {}
+      return st;
+    }
+  } catch(e) {}
   var def = JSON.parse(JSON.stringify(FIN_DEFAULT_STATE));
   localStorage.setItem(FIN_KEY, JSON.stringify(def));
   return def;
@@ -14265,7 +14391,7 @@ function finExportExcel() {
   var wb = XLSX.utils.book_new();
 
   var fact = (s.factures||[]).map(function(f){
-    return { Operateur:f.operateur, Mois:f.mois, Type:f.type||'', 'Montant SNV (XAF)':f.montant_snv||0,
+    return { Operateur:f.operateur, Mois:f.mois, Type:f.type||'', 'Part SNV HT CRM (XAF)':f.montant_snv||0,
       'Montant Operateur (XAF)':f.montant_op||'', 'Delta %':(f.recon_delta_pct!=null?f.recon_delta_pct:''),
       Statut:finStatutLabel(f.operateur,f.statut), 'N FNE':f.fne_number||'',
       'Date facture':f.date_facture||'', 'Echeance':f.date_echeance||'', 'Date paiement':f.date_paye||'', Notes:f.notes||'' };
@@ -14334,11 +14460,24 @@ function finSetMontantOp(fid, val) {
     var before=f.montant_op;
     f.montant_op = val ? Math.round(Number(val)) : null;
     if (f.montant_op && f.montant_snv) {
-      var pct = (f.montant_snv - f.montant_op) / f.montant_snv * 100;
+      // Ecart entre la part SNV mesuree par le CRM et celle validee par OCI.
+      var pct = (f.montant_op - f.montant_snv) / f.montant_op * 100;
       f.recon_delta_pct = Math.round(pct*10)/10;
       f.recon_ok = Math.abs(pct) <= 3;
     }
     if(before!==f.montant_op) finLog(s,'facture',fid,_finFactLabel(f),'montant_op',before,f.montant_op);
+  });
+}
+
+/* Montant de la FNE (TTC) tel qu'il figure sur le PDF de la facture.
+   Donnee de reference saisie ou importee : elle n'est jamais recalculee,
+   ce qui permet de detecter un ecart entre la facture emise et la base OCI. */
+function finSetMontantFne(fid, val) {
+  saveFinMutation(function(s) {
+    var f=s.factures.find(function(x){return x.id===fid;}); if(!f) return;
+    var before=f.montant_fne;
+    f.montant_fne = val ? Math.round(Number(val)) : null;
+    if(before!==f.montant_fne) finLog(s,'facture',fid,_finFactLabel(f),'montant_fne',before,f.montant_fne);
   });
 }
 function finSetMontantSnv(fid, val) {
@@ -14352,18 +14491,29 @@ function finSetMontantSnv(fid, val) {
 function finAutoFillMontant(fid) {
   var s = getFinState();
   var f = s.factures.find(function(x){return x.id===fid;}); if(!f) return;
-  var montant = null;
+  // Ce champ recoit la PART SNV HT, pas le chiffre d'affaires. Le CA TTC
+  // releve doit donc traverser la cascade de partage avant d'etre inscrit :
+  //   OCI : CA TTC / 1,43 (TVA 18 % + ARTCI 9 % + distribution 9 %) x 60 %
+  //   MTN : CA TTC / 1,18 x 82 % (retenues ARTCI et distribution) x 60 %
+  var PART_SNV = 0.60;
+  var montant = null, _caTtc = null, _jours = null;
   if (f.operateur === 'OCI') {
     var stats = ociMonthStats(f.mois);
-    if (stats) montant = stats.tot.ttc;
+    if (stats) {
+      _caTtc  = stats.tot.ttc;
+      _jours  = stats.days;
+      montant = Math.round(stats.tot.ht * PART_SNV);
+    }
   } else {
     var h = getH();
     var dates = Object.keys(h).sort().filter(function(d){return d.startsWith(f.mois);});
     if (dates.length) {
       var sumK = function(fn2) { return dates.reduce(function(acc,d){return acc+(h[d]?fn2(h[d].kpi):0);},0); };
-      if (f.type==='organic')     montant = Math.round(sumK(function(k){return k.mtn.org.rev;}));
-      else if (f.type==='bundle') montant = Math.round(sumK(function(k){return k.mtn.bun.revMkp||k.mtn.bun.revQS||0;}));
-      else                        montant = Math.round(sumK(function(k){return k.mtn.org.rev+(k.mtn.bun.revMkp||k.mtn.bun.revQS||0);}));
+      if (f.type==='organic')     _caTtc = sumK(function(k){return k.mtn.org.rev;});
+      else if (f.type==='bundle') _caTtc = sumK(function(k){return k.mtn.bun.revMkp||k.mtn.bun.revQS||0;});
+      else                        _caTtc = sumK(function(k){return k.mtn.org.rev+(k.mtn.bun.revMkp||k.mtn.bun.revQS||0);});
+      _jours  = dates.length;
+      montant = Math.round(_caTtc / 1.18 * 0.82 * PART_SNV);
     }
   }
   if (montant !== null) {
@@ -14372,7 +14522,13 @@ function finAutoFillMontant(fid) {
       finLog(s2,'facture',fid,_finFactLabel(f2),'montant_snv',f2.montant_snv,montant,'import');
       f2.montant_snv=montant;
     });
-    alert('Montant SNV mis a jour : ' + montant.toLocaleString('fr-FR') + ' XAF');
+    var _msg = 'Part SNV HT (CRM) : ' + montant.toLocaleString('fr-FR') + ' XAF\n\n'
+             + 'CA TTC releve  : ' + (_caTtc||0).toLocaleString('fr-FR') + ' XAF sur ' + (_jours||0) + ' jour(s)\n'
+             + (f.operateur === 'OCI'
+                ? 'Cascade        : / 1,43 puis x 60 %'
+                : 'Cascade        : / 1,18 puis x 82 % puis x 60 %');
+    if (_jours && _jours < 28) _msg += '\n\nAttention : ' + _jours + ' jour(s) seulement, le mois est incomplet.';
+    alert(_msg);
   } else {
     alert('Aucune donnee CRM pour ' + f.mois + '. Televerse les fichiers quotidiens.');
   }
@@ -14478,7 +14634,7 @@ function finAddFacture() {
   var opRef = finGetOp(op);
   var mois = prompt('Mois (YYYY-MM) :', new Date().toISOString().slice(0,7)); if(!mois) return;
   var type = op==='OCI'?'both':(prompt('Type (organic / bundle / both) :','organic')||'organic');
-  var montant = parseInt(prompt('Montant SNV (XAF) :','0')||'0');
+  var montant = parseInt(prompt('Part SNV HT mesuree par le CRM (XAF) :','0')||'0');
   saveFinMutation(function(s){
     var id='fin_'+Date.now();
     var f={id:id,operateur:op,mois:mois,type:type,montant_snv:montant,montant_op:null,
@@ -14803,7 +14959,7 @@ function renderFinFactures(s) {
   var encours=filtered.filter(function(f){return f.statut!=='paye';}).reduce(function(t,f){return t+(f.montant_snv||0);},0);
   html+='<div style="margin-bottom:12px;font-size:13px;color:#64748b">Encours : <strong style="color:#dc2626">'+encours.toLocaleString('fr-FR')+' XAF</strong></div>';
   html+='<div class="tbl-wrap"><table><thead><tr>'
-    +'<th>Op.</th><th>Mois</th><th>Type</th><th>Montant SNV</th><th>Montant Operateur</th><th>Reconcil. Delta</th>'
+    +'<th>Op.</th><th>Mois</th><th>Type</th><th>Part SNV HT (CRM)</th><th>Montant Operateur</th><th>Reconcil. Delta</th>'
     +'<th>Statut</th><th>N FNE</th><th>Echeance paiement</th><th>Derniere relance</th><th>Notes</th><th></th>'
     +'</tr></thead><tbody>';
 
@@ -14833,7 +14989,7 @@ function renderFinFactures(s) {
       +'<td>'+_finMonth(f.mois,'finSetFactField(\''+f.id+'\',\'mois\',this.value)','110px')+'</td>'
       +'<td>'+(isOCI?'<span style="color:#94a3b8;font-size:11px">Org+Bundle</span>':typeSel)+'</td>'
       +'<td><div style="display:flex;align-items:center;gap:4px">'
-        +_finNum(f.montant_snv,'Montant SNV','finSetMontantSnv(\''+f.id+'\',this.value)','120px')
+        +_finNum(f.montant_snv,'Part SNV HT (CRM)','finSetMontantSnv(\''+f.id+'\',this.value)','120px')
         +'<button class="btn btn-soft" onclick="finAutoFillMontant(\''+f.id+'\')" title="Auto-remplir depuis les donnees CRM" style="padding:3px 8px;font-size:10px">CRM</button>'
       +'</div></td>'
       +'<td>'+_finNum(f.montant_op,'Montant OP','finSetMontantOp(\''+f.id+'\',this.value)','120px')+'</td>'
@@ -16056,7 +16212,7 @@ function bicIaContexte() {
       const ouv = fs.filter(f => f.statut !== 'paye');
       L.push(ouv.length + ' factures ouvertes sur ' + fs.length + ', pour '
            + n(ouv.reduce((s,f)=>s+(+f.montant_snv||0),0)) + ' XAF en attente.');
-      L.push('opérateur | mois | type | montant SNV | étape en cours | responsable');
+      L.push('opérateur | mois | type | Part SNV HT (CRM) | étape en cours | responsable');
       fs.slice().sort((a,b)=>(b.mois||'').localeCompare(a.mois||'')).forEach(f => {
         L.push(f.operateur + ' | ' + (f.mois||'') + ' | ' + (f.type||'') + ' | '
              + (f.montant_snv ? n(f.montant_snv) : 'non saisi') + ' | '
@@ -16650,15 +16806,81 @@ function finLigneDetail(f, nbColonnes) {
   var today = new Date().toISOString().slice(0, 10);
   var enRetard = f.date_echeance && f.date_echeance < today && f.statut !== 'paye';
 
-  // Réconciliation : l'écart entre ce que SNV facture et ce que l'opérateur
-  // déclare. Au-delà de 3 % il faut en parler avant d'émettre la FNE.
-  var recon = '<span style="color:#94a3b8">montants incomplets</span>';
+  // ── Reconciliation ────────────────────────────────────────────────────
+  //   montant_snv = part SNV HT mesuree par le CRM (nos propres releves)
+  //   montant_op  = part SNV HT validee sur la fiche de reconciliation OCI
+  //   montant_fne = montant TTC lu sur le PDF de la FNE (donnee de reference)
+  // L'ecart se calcule entre montant_snv et montant_op. Le montant FNE est
+  // affiche a cote pour controle, il n'entre pas dans le calcul de l'ecart.
+  // snv_base_ok === false signale que la mesure CRM n'est pas comparable
+  // (periode incomplete ou perimetre different) : on affiche la valeur mais
+  // aucun pourcentage, car il serait trompeur.
+  var _baseOk = (f.snv_base_ok !== false);
+  var _fC = function(n){ return (n==null?'—':(n).toLocaleString('fr-FR')+' XAF'); };
+  var _cascHtml = '';
   var pct = null;
-  if (f.montant_snv && f.montant_op) {
-    pct = (f.montant_snv - f.montant_op) / f.montant_snv * 100;
-    var ok = Math.abs(pct) <= 3;
-    recon = '<span style="color:' + (ok ? '#15803d' : '#dc2626') + ';font-weight:700">'
-          + pct.toFixed(1) + ' % · ' + (ok ? 'conforme' : 'écart à justifier') + '</span>';
+
+  if (f.montant_snv != null && f.montant_op != null && _baseOk) {
+    pct = (f.montant_op - f.montant_snv) / f.montant_op * 100;
+  }
+
+  if (f.montant_snv != null || f.montant_op != null || f.montant_fne != null) {
+    var _rw = function(lbl,val,bold,color){
+      return '<tr><td style="padding:3px 10px 3px 0;color:#64748b;font-size:11px">'+lbl+'</td>'
+           + '<td style="padding:3px 0;text-align:right;font-size:11px;'
+           + (bold?'font-weight:700;':'') + (color?'color:'+color+';':'') + '">'+_fC(val)+'</td></tr>';
+    };
+    var _sep = function(txt){
+      return '<tr><td colspan="2" style="padding:2px 0;color:#94a3b8;font-size:10px;border-top:1px solid #f1f5f9">'+txt+'</td></tr>';
+    };
+    _cascHtml  = '<div style="margin-top:14px;background:#f8faff;border:1px solid #e2e6fb;border-radius:8px;padding:12px 16px">';
+    _cascHtml += '<div style="font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:#4f5bd5;margin-bottom:10px">Reconciliation des parts StarNews</div>';
+    _cascHtml += '<table style="width:100%;border-collapse:collapse">';
+    _cascHtml += _rw('Part SNV HT · mesure CRM', f.montant_snv);
+    _cascHtml += _rw('Part SNV HT · fiche OCI', f.montant_op, true);
+
+    if (pct !== null) {
+      var _e  = f.montant_op - f.montant_snv;
+      var _ok = Math.abs(pct) <= 3;
+      _cascHtml += '<tr><td style="padding:3px 10px 3px 0;color:#64748b;font-size:11px">Ecart (OCI moins CRM)</td>'
+               + '<td style="padding:3px 0;text-align:right;font-size:11px;font-weight:700;color:'
+               + (_ok?'#15803d':'#dc2626') + '">'
+               + _fC(Math.abs(_e)) + ' ' + (_e>=0?'▲':'▼') + ' (' + Math.abs(pct).toFixed(1) + ' %)'
+               + '</td></tr>';
+    } else if (!_baseOk && f.montant_snv != null) {
+      _cascHtml += '<tr><td colspan="2" style="padding:5px 0;font-size:10.5px;color:#b45309;background:#fffbeb;border-radius:4px">'
+               + '&#9888; Mesure CRM non comparable a la fiche OCI'
+               + (f.snv_base_note ? ' — ' + _finEsc(f.snv_base_note) : '')
+               + '. Aucun ecart calcule.'
+               + '</td></tr>';
+    }
+
+    if (f.montant_fne != null) {
+      _cascHtml += _sep('Facture normalisee electronique (source : PDF)');
+      _cascHtml += '<tr><td style="padding:4px 10px 0 0;font-size:11px;font-weight:700;color:#0f172a">Montant FNE TTC</td>'
+                + '<td style="padding:4px 0;text-align:right;font-size:13px;font-weight:700;color:#1d4ed8">'+_fC(f.montant_fne)+'</td></tr>';
+      // Controle : la FNE doit valoir la part OCI majoree de la TVA 18 %.
+      if (f.montant_op != null) {
+        var _att = Math.round(f.montant_op * 1.18);
+        var _d   = f.montant_fne - _att;
+        var _dOk = Math.abs(_d) <= 2;
+        _cascHtml += '<tr><td style="padding:2px 10px 0 0;color:#94a3b8;font-size:10px">Controle : part OCI x 1,18</td>'
+                  + '<td style="padding:2px 0;text-align:right;font-size:10px;color:'+(_dOk?'#15803d':'#dc2626')+'">'
+                  + (_dOk ? 'concordant' : _fC(_att) + ' attendu, ecart ' + _d.toLocaleString('fr-FR'))
+                  + '</td></tr>';
+      }
+    }
+    _cascHtml += '</table></div>';
+  }
+
+  // Cellule "Reconciliation" du tableau
+  var recon = '<span style="color:#94a3b8">donnees incompletes</span>';
+  if (pct !== null) {
+    var okc = Math.abs(pct) <= 3;
+    recon = '<span style="color:' + (okc?'#15803d':'#dc2626') + ';font-weight:700">'
+          + Math.abs(pct).toFixed(1) + ' % · ' + (okc?'conforme':'ecart a verifier') + '</span>';
+  } else if (!_baseOk && f.montant_snv != null) {
+    recon = '<span style="color:#b45309;font-weight:600">base non comparable</span>';
   }
 
   var typeOpts = [{id:'organic',label:'Organic'},{id:'bundle',label:'Bundle'},{id:'both',label:'Org + Bundle'}];
@@ -16667,15 +16889,18 @@ function finLigneDetail(f, nbColonnes) {
   h += '<div style="padding:14px 18px">';
   h += '<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(178px,1fr));gap:14px">';
 
-  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Montant SNV</div>'
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Part SNV HT (CRM)</div>'
      + '<div style="display:flex;gap:4px;align-items:center">'
-     + _finNum(f.montant_snv, 'Montant SNV', "finSetMontantSnv('" + f.id + "',this.value)", '118px')
+     + _finNum(f.montant_snv, 'Part SNV HT (CRM)', "finSetMontantSnv('" + f.id + "',this.value)", '118px')
      + '<button class="btn btn-soft" onclick="finAutoFillMontant(\'' + f.id + '\')" '
      + 'title="Calculer depuis les données du CRM pour ce mois" style="padding:4px 8px;font-size:10px">CRM</button>'
      + '</div></div>';
 
-  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Montant opérateur</div>'
-     + _finNum(f.montant_op, 'Montant opérateur', "finSetMontantOp('" + f.id + "',this.value)", '130px') + '</div>';
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Part SNV HT (OCI)</div>'
+     + _finNum(f.montant_op, 'Part SNV HT (OCI)', "finSetMontantOp('" + f.id + "',this.value)", '130px') + '</div>';
+
+  h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Montant FNE TTC (PDF)</div>'
+     + _finNum(f.montant_fne, 'Montant FNE TTC', "finSetMontantFne('" + f.id + "',this.value)", '130px') + '</div>';
 
   h += '<div><div style="font-size:9px;color:#64748b;text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px">Réconciliation</div>'
      + '<div style="font-size:12px;padding-top:5px">' + recon + '</div></div>';
@@ -16702,8 +16927,8 @@ function finLigneDetail(f, nbColonnes) {
 
   h += '</div>';
 
-  // Conseil contextuel : c'est au moment de la réconciliation OCI que l'écart
-  // doit être traité, pas après émission de la FNE.
+  // Cascade et conseil contextuel
+  h += _cascHtml;
   if (isOCI && pct !== null && finEtat(f, 'stats_oci_recues') === 'ok' && finEtat(f, 'fne_generee') !== 'ok') {
     var ok2 = Math.abs(pct) <= 3;
     h += '<div style="margin-top:12px;background:' + (ok2 ? 'rgba(21,128,61,.06)' : 'rgba(220,38,38,.06)')
@@ -16766,6 +16991,10 @@ function renderFinSuivi(s) {
        + '</div>';
   }
 
+  h += '<div style="margin:0 0 10px;font-size:10px;color:#94a3b8">'
+     + 'Base factures v5 &middot; 06/08/2026 &middot; 3 montants : part SNV CRM / part SNV OCI / FNE (PDF) &middot; ecart calcule entre les deux parts'
+     + '</div>';
+  h += finRenderImportZone();
   h += '<div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap;align-items:center">';
   h += '<button onclick="finAddFacture()" class="btn btn-ok" style="font-size:12px">+ Nouvelle facture</button>';
   h += '<button onclick="finExportSuiviXLSX()" style="padding:8px 16px;background:#16a34a;color:#fff;border:none;'
@@ -16931,13 +17160,13 @@ function finExportSuiviXLSX() {
     if (!lot.length) return;
     var etapes = finEtapesDe(op);
 
-    var entete = ['Mois', 'Type', 'Montant SNV (XAF)', 'Montant opérateur (XAF)', 'Statut actuel'];
+    var entete = ['Mois', 'Type', 'Part SNV HT CRM (XAF)', 'Part SNV HT OCI (XAF)', 'Montant FNE TTC (XAF)', 'Statut actuel'];
     etapes.forEach(function (e, i) { entete.push((i + 1) + '. ' + e.label); });
     entete.push('Dernière action', 'Responsable', 'Jours depuis dernière étape', 'Notes');
 
     var lignes = [entete];
     lot.forEach(function (f) {
-      var l = [f.mois || '', f.type || '', f.montant_snv || '', f.montant_op || '', finLibelleStatut(f)];
+      var l = [f.mois || '', f.type || '', f.montant_snv || '', f.montant_op || '', f.montant_fne || '', finLibelleStatut(f)];
       etapes.forEach(function (e) {
         var cfg = FIN_ETATS.find(function (x) { return x.id === finEtat(f, e.id); }) || FIN_ETATS[0];
         l.push(cfg.court);
@@ -17840,6 +18069,234 @@ function consoleMonter() {
   document.body.appendChild(p);
 }
 
+
+
+// ═══════════════════════════════════════════════════════════════════════════
+// FIN — Import automatique de factures FNE depuis PDF
+// ═══════════════════════════════════════════════════════════════════════════
+// Fonctionne uniquement en HTTP (via Lancer_CRM.bat) car PDF.js a besoin
+// de charger son worker depuis cdnjs. En file:// le bouton est visible mais
+// l'import sera bloqué par le navigateur (message d'erreur explicite).
+// ═══════════════════════════════════════════════════════════════════════════
+
+const _FIN_PDF_CDN    = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js';
+const _FIN_PDF_WORKER = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+const _MOIS_FR_MAP = {
+  'janvier':'01','fevrier':'02','évrier':'02','février':'02',
+  'mars':'03','avril':'04','mai':'05','juin':'06','juillet':'07',
+  'août':'08','aout':'08','septembre':'09','octobre':'10',
+  'novembre':'11','décembre':'12','decembre':'12'
+};
+
+let _pdfJsP = null;
+function _finLoadPdfJs() {
+  if (_pdfJsP) return _pdfJsP;
+  _pdfJsP = new Promise(function(res, rej) {
+    if (window.pdfjsLib) {
+      window.pdfjsLib.GlobalWorkerOptions.workerSrc = _FIN_PDF_WORKER;
+      return res(window.pdfjsLib);
+    }
+    var sc = document.createElement('script');
+    sc.src = _FIN_PDF_CDN;
+    sc.onload = function() { window.pdfjsLib.GlobalWorkerOptions.workerSrc = _FIN_PDF_WORKER; res(window.pdfjsLib); };
+    sc.onerror = function() { rej(new Error('PDF.js non chargeable — connexion internet requise')); };
+    document.head.appendChild(sc);
+  });
+  return _pdfJsP;
+}
+
+async function _finPdfTexte(buf) {
+  var lib = await _finLoadPdfJs();
+  var pdf = await lib.getDocument({ data: buf }).promise;
+  var texte = '';
+  for (var i = 1; i <= pdf.numPages; i++) {
+    var pg  = await pdf.getPage(i);
+    var tc  = await pg.getTextContent();
+    texte  += tc.items.map(function(x) { return x.str; }).join(' ') + '\n';
+  }
+  return texte;
+}
+
+function _finExtraireChamps(texte) {
+  var t = texte.replace(/\s+/g, ' ');
+
+  // N° FNE
+  var mFne = t.match(/Facture de vente\s*N[°º°]\s*([\dA-Z]+)/i)
+           || t.match(/(1516517E\d{8,})/);
+  var fne = mFne ? mFne[1].trim() : null;
+
+  // Opérateur (client sur la facture)
+  var op = /ORANGE\s+C[O0]T[E€]/i.test(t) ? 'OCI'
+         : /MTN\s+C[O0]T[E€]/i.test(t)    ? 'MTN' : null;
+
+  // Montant FNE TTC (TOTAL A PAYER) (on prend TOTAL A PAYER en priorité)
+  var mTtc = t.match(/TOTAL\s+A\s+PAYER\s+([\d\s,]+)/i)
+           || t.match(/TOTAL\s+TTC\s+([\d\s,]+)/i);
+  var montant_snv = mTtc ? parseInt(mTtc[1].replace(/[\s,]/g, '')) : null;
+
+  // Date d'émission
+  var mDate = t.match(/Date et heure\s*:\s*(\d{2})\/(\d{2})\/(\d{4})/i);
+  var date_facture = mDate ? (mDate[3] + '-' + mDate[2] + '-' + mDate[1]) : null;
+
+  // Mois de facturation (ex: "Mai 2026" dans la colonne Réf)
+  var mois = null;
+  var mPer = t.match(/(Janvier|F[éé]vrier|Fevrier|Mars|Avril|Mai|Juin|Juillet|[Aa]o[ûû]t|Septembre|Octobre|Novembre|D[éé]cembre)\s+(\d{4})/i);
+  if (mPer) {
+    var mm = _MOIS_FR_MAP[(mPer[1] || '').toLowerCase()];
+    if (mm) mois = mPer[2] + '-' + mm;
+  }
+
+  // Type de facturation
+  var hasBoth = /organique.*bundle|bundle.*organique/i.test(t);
+  var hasOrg  = /organique/i.test(t);
+  var hasBun  = /bundle/i.test(t);
+  var type = hasBoth ? 'both' : hasBun ? 'bundle' : hasOrg ? 'organic' : null;
+
+  return { fne: fne, operateur: op, montant_snv: montant_snv,
+           date_facture: date_facture, mois: mois, type: type };
+}
+
+function _finPdfModal(data, nom) {
+  var moisLib = { '01':'Janvier','02':'Février','03':'Mars','04':'Avril',
+    '05':'Mai','06':'Juin','07':'Juillet','08':'Août',
+    '09':'Septembre','10':'Octobre','11':'Novembre','12':'Décembre' };
+
+  var s = getFinState();
+  var existing = (s.factures || []).find(function(f) {
+    return (data.fne && f.fne_number === data.fne) ||
+           (data.operateur && data.mois && f.operateur === data.operateur &&
+            f.mois === data.mois &&
+            (!data.type || data.type === 'both' || f.type === data.type || f.type === 'both'));
+  });
+  var isNew = !existing;
+
+  var el = document.getElementById('_finPdfModal');
+  if (!el) {
+    el = document.createElement('div');
+    el.id = '_finPdfModal';
+    el.style.cssText = 'position:fixed;inset:0;background:rgba(15,23,42,.75);z-index:9999;display:flex;align-items:center;justify-content:center';
+    document.body.appendChild(el);
+  }
+
+  var selOp  = ['OCI','MTN'].map(function(v) {
+    return '<option value="'+v+'"'+(data.operateur===v?' selected':'')+'>'+
+           (v==='OCI'?'Orange CI':'MTN CIV')+'</option>';
+  }).join('');
+  var selTyp = [['both','Organique + Bundle'],['organic','Organique seul'],['bundle','Bundle seul']].map(function(p) {
+    return '<option value="'+p[0]+'"'+(data.type===p[0]?' selected':'')+'>'+p[1]+'</option>';
+  }).join('');
+
+  el.innerHTML =
+    '<div style="background:#fff;border-radius:14px;padding:26px;width:460px;max-width:95vw;max-height:92vh;overflow-y:auto;box-shadow:0 20px 60px rgba(0,0,0,.3)">'
+  + '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px">'
+  +   '<div><div style="font-size:14px;font-weight:700;color:#0f172a;margin-bottom:2px">📄 '+nom+'</div>'
+  +   '<div style="font-size:11px;color:#94a3b8">Vérifier et compléter avant d\'enregistrer</div></div>'
+  +   '<button onclick="document.getElementById(\'_finPdfModal\').remove()" '
+  +   'style="background:none;border:none;font-size:20px;cursor:pointer;color:#94a3b8;line-height:1">×</button>'
+  + '</div>'
+  + '<div style="background:'+(isNew?'#eff6ff':'#f0fdf4')+';border-radius:8px;padding:10px 14px;'
+  +   'margin-bottom:16px;font-size:12px;color:'+(isNew?'#1d4ed8':'#15803d')+'">'
+  +   (isNew?'✨ Nouvelle facture — sera créée dans le suivi'
+           :'✅ Correspond à <b>'+existing.operateur+' '+existing.mois+'</b> — sera mise à jour')
+  + '</div>'
+  + '<div style="display:grid;gap:12px">'
+  + _finChamp('N° FNE', 'fpFne', 'text', data.fne||'', '1516517E…')
+  + '<label style="font-size:11px;color:#64748b;font-weight:600">Opérateur<select id="fpOp" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px">'+selOp+'</select></label>'
+  + _finChamp('Mois (YYYY-MM)', 'fpMois', 'text', data.mois||'', 'ex: 2026-05')
+  + '<label style="font-size:11px;color:#64748b;font-weight:600">Type<select id="fpType" style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px">'+selTyp+'</select></label>'
+  + _finChamp('Montant FNE TTC — TOTAL A PAYER (XAF)', 'fpMontant', 'number', data.montant_snv||'', '')
+  + _finChamp('Date d\'émission', 'fpDate', 'date', data.date_facture||'', '')
+  + '</div>'
+  + '<div style="display:flex;gap:10px;margin-top:20px">'
+  + '<button onclick="finImportConfirmerPdf('+(isNew?'true':'false')+','+(isNew?'null':JSON.stringify(existing.id))+')" '
+  +   'style="flex:1;padding:11px;background:#4f5bd5;color:#fff;border:none;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer">'
+  +   (isNew?'+ Créer la facture':'✔ Mettre à jour')+'</button>'
+  + '<button onclick="document.getElementById(\'_finPdfModal\').remove()" '
+  +   'style="padding:11px 18px;background:#f1f5f9;color:#64748b;border:none;border-radius:8px;font-size:13px;cursor:pointer">Annuler</button>'
+  + '</div></div>';
+
+  el.style.display = 'flex';
+}
+
+function _finChamp(label, id, type, val, ph) {
+  return '<label style="font-size:11px;color:#64748b;font-weight:600">'+label
+    +'<input id="'+id+'" type="'+type+'" value="'+val+'" placeholder="'+ph+'" '
+    +'style="display:block;width:100%;box-sizing:border-box;margin-top:3px;padding:8px;border:1px solid #e2e8f0;border-radius:6px;font-size:13px"></label>';
+}
+
+function finImportConfirmerPdf(isNew, existingId) {
+  var fne    = (document.getElementById('fpFne').value||'').trim();
+  var op     = document.getElementById('fpOp').value;
+  var mois   = (document.getElementById('fpMois').value||'').trim();
+  var type   = document.getElementById('fpType').value;
+  var mttc   = parseInt(document.getElementById('fpMontant').value) || null;
+  var dfact  = document.getElementById('fpDate').value || null;
+  if (!mois || !op) { alert('Opérateur et mois sont obligatoires.'); return; }
+  saveFinMutation(function(s) {
+    if (isNew) {
+      // Le TOTAL A PAYER du PDF est le montant de la FNE, pas la part SNV
+      // mesuree par le CRM : il alimente montant_fne. La part OCI (montant_op)
+      // se deduit du montant TTC hors TVA 18 %, a confirmer sur la fiche.
+      s.factures.push({ id:'fin_imp_'+Date.now(), operateur:op, mois:mois, type:type,
+        montant_snv:null, montant_op:null, montant_fne:mttc, statut:'fne_generee',
+        snv_base_ok:true, snv_base_note:null,
+        fne_number:fne||null, date_facture:dfact,
+        date_paye:null, date_echeance:null, etapes:{},
+        notes:'Importe via PDF le '+new Date().toISOString().slice(0,10)
+              + (mttc ? ' | FNE '+mttc.toLocaleString('fr-FR')+' XAF TTC' : '') });
+    } else {
+      var f = (s.factures||[]).find(function(x){return x.id===existingId;});
+      if (f) {
+        if (fne   && !f.fne_number)   f.fne_number   = fne;
+        if (mttc  && f.montant_fne == null) f.montant_fne = mttc;
+        if (dfact && !f.date_facture) f.date_facture = dfact;
+      }
+    }
+  });
+  var el = document.getElementById('_finPdfModal');
+  if (el) el.remove();
+}
+
+async function finImporterPdf(files) {
+  try { await _finLoadPdfJs(); } catch(e) {
+    alert('⚠️ Lecteur PDF non disponible.\n\nOuvrir le CRM via Lancer_CRM.bat (serveur local) pour activer l\'import PDF.\n\nErreur : ' + e.message);
+    return;
+  }
+  var liste = Array.from(files).filter(function(f){ return f.name.toLowerCase().endsWith('.pdf'); });
+  if (!liste.length) { alert('Aucun fichier PDF trouvé dans la sélection.'); return; }
+  for (var i = 0; i < liste.length; i++) {
+    var file = liste[i];
+    try {
+      var buf   = await file.arrayBuffer();
+      var texte = await _finPdfTexte(buf);
+      var data  = _finExtraireChamps(texte);
+      _finPdfModal(data, file.name);
+      if (i < liste.length - 1) await new Promise(function(r){ setTimeout(r, 300); });
+    } catch(e) {
+      alert('Erreur lecture ' + file.name + ' : ' + e.message);
+    }
+  }
+}
+
+function finRenderImportZone() {
+  return '<div id="_finImportZone" '
+    + 'style="border:2px dashed #c7d2fe;border-radius:10px;padding:16px 20px;'
+    + 'display:flex;align-items:center;gap:14px;background:#f8faff;margin-bottom:14px;cursor:pointer;'
+    + 'transition:background .2s,border-color .2s" '
+    + 'onclick="document.getElementById(\'_finPdfInput\').click()" '
+    + 'ondragover="event.preventDefault();this.style.background=\'#e0e7ff\';this.style.borderColor=\'#4f5bd5\'" '
+    + 'ondragleave="this.style.background=\'#f8faff\';this.style.borderColor=\'#c7d2fe\'" '
+    + 'ondrop="event.preventDefault();this.style.background=\'#f8faff\';this.style.borderColor=\'#c7d2fe\';finImporterPdf(event.dataTransfer.files)">'
+    + '<div style="font-size:28px;flex-shrink:0">📄</div>'
+    + '<div>'
+    + '<div style="font-size:13px;font-weight:700;color:#4f5bd5">Charger une facture FNE (PDF)</div>'
+    + '<div style="font-size:11px;color:#94a3b8;margin-top:2px">Glisser-déposer ou cliquer · Reconnaît automatiquement l\'opérateur, le montant et la période</div>'
+    + '</div>'
+    + '<input id="_finPdfInput" type="file" accept=".pdf" multiple style="display:none" '
+    + 'onchange="finImporterPdf(this.files);this.value=\'\'">'
+    + '</div>';
+}
 
 </script>
 </body>
